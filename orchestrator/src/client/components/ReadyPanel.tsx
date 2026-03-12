@@ -349,24 +349,6 @@ export const ReadyPanel: React.FC<ReadyPanelProps> = ({
       <JobHeader
         job={job}
         className="pb-4 border-b border-border/40"
-        onCheckSponsor={async () => {
-          try {
-            await api.checkSponsor(job.id);
-            trackProductEvent("jobs_job_action_completed", {
-              action: "check_sponsor",
-              result: "success",
-              from_status: job.status,
-            });
-            await onJobUpdated();
-          } catch (error) {
-            trackProductEvent("jobs_job_action_completed", {
-              action: "check_sponsor",
-              result: "error",
-              from_status: job.status,
-            });
-            throw error;
-          }
-        }}
       />
 
       {/* ─────────────────────────────────────────────────────────────────────

@@ -165,9 +165,6 @@ export const JobDetailsEditDrawer: React.FC<JobDetailsEditDrawerProps> = ({
       setValidationError(null);
       setIsSaving(true);
 
-      const employerChanged =
-        employer.toLowerCase() !== job.employer.trim().toLowerCase();
-
       await api.updateJob(job.id, {
         title,
         employer,
@@ -179,18 +176,6 @@ export const JobDetailsEditDrawer: React.FC<JobDetailsEditDrawerProps> = ({
         jobDescription: normalizeOptional(draft.jobDescription),
         tracerLinksEnabled: draft.tracerLinksEnabled,
       });
-
-      if (employerChanged) {
-        try {
-          await api.checkSponsor(job.id);
-        } catch (error) {
-          const message =
-            error instanceof Error
-              ? error.message
-              : "Job updated, but sponsor check failed";
-          toast.error(message);
-        }
-      }
 
       await onJobUpdated();
 

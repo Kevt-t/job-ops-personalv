@@ -174,8 +174,7 @@ curl -X PATCH "http://localhost:3001/api/settings" \
   -d '{
     "llmProvider": "openrouter",
     "model": "openai/gpt-4.1-mini",
-    "chatStyleTone": "concise",
-    "showSponsorInfo": true
+    "chatStyleTone": "concise"
   }'
 ```
 

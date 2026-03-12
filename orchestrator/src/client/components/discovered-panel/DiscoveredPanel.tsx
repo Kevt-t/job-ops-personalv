@@ -139,24 +139,6 @@ export const DiscoveredPanel: React.FC<DiscoveredPanelProps> = ({
           onRescore={handleRescore}
           isRescoring={isRescoring}
           onEditDetails={() => setIsEditDetailsOpen(true)}
-          onCheckSponsor={async () => {
-            try {
-              await api.checkSponsor(job.id);
-              trackProductEvent("jobs_job_action_completed", {
-                action: "check_sponsor",
-                result: "success",
-                from_status: job.status,
-              });
-              await onJobUpdated();
-            } catch (error) {
-              trackProductEvent("jobs_job_action_completed", {
-                action: "check_sponsor",
-                result: "error",
-                from_status: job.status,
-              });
-              throw error;
-            }
-          }}
         />
       ) : (
         <TailorMode

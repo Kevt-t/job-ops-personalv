@@ -497,7 +497,7 @@ describe("OrchestratorPage", () => {
     render(
       <MemoryRouter
         initialEntries={[
-          "/jobs/ready?source=linkedin&sponsor=confirmed&salaryMode=between&salaryMin=60000&salaryMax=90000&q=backend&sort=title-asc",
+          "/jobs/ready?source=linkedin&salaryMode=between&salaryMin=60000&salaryMax=90000&q=backend&sort=title-asc",
         ]}
       >
         <LocationWatcher />
@@ -515,7 +515,6 @@ describe("OrchestratorPage", () => {
       expect(locationText).toContain("/discovered/job-2");
       expect(locationText).toContain("sort=title-asc");
       expect(locationText).not.toContain("source=");
-      expect(locationText).not.toContain("sponsor=");
       expect(locationText).not.toContain("salaryMode=");
       expect(locationText).not.toContain("salaryMin=");
       expect(locationText).not.toContain("salaryMax=");

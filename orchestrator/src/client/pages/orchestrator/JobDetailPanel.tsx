@@ -407,24 +407,6 @@ export const JobDetailPanel: React.FC<JobDetailPanelProps> = ({
     <div className="space-y-3">
       <JobHeader
         job={selectedJob}
-        onCheckSponsor={async () => {
-          try {
-            await api.checkSponsor(selectedJob.id);
-            trackProductEvent("jobs_job_action_completed", {
-              action: "check_sponsor",
-              result: "success",
-              from_status: selectedJob.status,
-            });
-            await onJobUpdated();
-          } catch (error) {
-            trackProductEvent("jobs_job_action_completed", {
-              action: "check_sponsor",
-              result: "error",
-              from_status: selectedJob.status,
-            });
-            throw error;
-          }
-        }}
       />
 
       <div className="flex flex-wrap items-center gap-1.5">

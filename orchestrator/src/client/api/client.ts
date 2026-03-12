@@ -781,12 +781,6 @@ export async function generateJobPdf(id: string): Promise<Job> {
   });
 }
 
-export async function checkSponsor(id: string): Promise<Job> {
-  return fetchApi<Job>(`/jobs/${id}/check-sponsor`, {
-    method: "POST",
-  });
-}
-
 export async function markAsApplied(id: string): Promise<Job> {
   return fetchApi<Job>(`/jobs/${id}/apply`, {
     method: "POST",

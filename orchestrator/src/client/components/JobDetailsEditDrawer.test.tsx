@@ -30,7 +30,6 @@ vi.mock("@/components/ui/sheet", () => ({
 
 vi.mock("../api", () => ({
   updateJob: vi.fn(),
-  checkSponsor: vi.fn(),
   rescoreJob: vi.fn(),
   getTracerReadiness: vi.fn(),
 }));
@@ -57,11 +56,10 @@ describe("JobDetailsEditDrawer", () => {
     });
   });
 
-  it("saves details and reruns sponsor check when employer changes", async () => {
+  it("saves details when employer changes", async () => {
     const onJobUpdated = vi.fn().mockResolvedValue(undefined);
     const onOpenChange = vi.fn();
     vi.mocked(api.updateJob).mockResolvedValue({} as Job);
-    vi.mocked(api.checkSponsor).mockResolvedValue({} as Job);
 
     render(
       <JobDetailsEditDrawer
@@ -87,7 +85,6 @@ describe("JobDetailsEditDrawer", () => {
         }),
       ),
     );
-    expect(api.checkSponsor).toHaveBeenCalledWith("job-1");
     expect(onJobUpdated).toHaveBeenCalledTimes(1);
     expect(onOpenChange).toHaveBeenCalledWith(false);
   });

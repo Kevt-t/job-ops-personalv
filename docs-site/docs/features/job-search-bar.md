@@ -68,7 +68,7 @@ Common aliases:
 ## When to use this vs filters
 
 - Use **Search Bar** when you already know what role/company you want to jump to quickly.
-- Use **Filters** when you want broad narrowing (source, salary, sponsor, sort) for browsing.
+- Use **Filters** when you want broad narrowing (source, salary, sort) for browsing.
 
 ## Related pages
 

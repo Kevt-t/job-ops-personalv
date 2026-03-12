@@ -57,7 +57,6 @@ vi.mock("../api", () => ({
   getResumeProjectsCatalog: vi.fn().mockResolvedValue([]),
   markAsApplied: vi.fn(),
   generateJobPdf: vi.fn(),
-  checkSponsor: vi.fn(),
   skipJob: vi.fn(),
   updateJob: vi.fn(),
 }));
