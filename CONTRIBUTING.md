@@ -18,9 +18,9 @@ Use the path that matches your change:
 
 | Path | Main folders | Start command(s) | Canonical docs |
 | --- | --- | --- | --- |
-| Docs/content | `docs-site/docs` | `npm run docs:dev` | [Docs style guide](https://jobops.dakheera47.com/docs/next/reference/documentation-style-guide), [FAQ](https://jobops.dakheera47.com/docs/next/reference/faq) |
-| App/UI/API | `orchestrator`, `shared` | `npm --workspace orchestrator run dev` | [Self-hosting](https://jobops.dakheera47.com/docs/getting-started/self-hosting), [Troubleshooting](https://jobops.dakheera47.com/docs/next/troubleshooting/common-problems) |
-| Extractors | `extractors/*`, sometimes `shared` | Relevant type checks + tests | [Add an extractor](https://jobops.dakheera47.com/docs/next/workflows/add-an-extractor), [Extractors overview](https://jobops.dakheera47.com/docs/extractors/overview) |
+| Docs/content | `docs-site/docs` | `npm run docs:dev` | [Docs style guide](https://jobops.dakheera47.com/docs/reference/documentation-style-guide), [FAQ](https://jobops.dakheera47.com/docs/reference/faq) |
+| App/UI/API | `orchestrator`, `shared` | `npm --workspace orchestrator run dev` | [Self-hosting](https://jobops.dakheera47.com/docs/getting-started/self-hosting), [Troubleshooting](https://jobops.dakheera47.com/docs/troubleshooting/common-problems) |
+| Extractors | `extractors/*`, sometimes `shared` | Relevant type checks + tests | [Add an extractor](https://jobops.dakheera47.com/docs/workflows/add-an-extractor), [Extractors overview](https://jobops.dakheera47.com/docs/extractors/overview) |
 
 ## Local Setup (Minimal)
 
@@ -107,7 +107,7 @@ Before editing server routes/services, read [`AGENTS.md`](./AGENTS.md) for repos
 
 - [Documentation Home](https://jobops.dakheera47.com/docs/)
 - [Self-Hosting Guide](https://jobops.dakheera47.com/docs/getting-started/self-hosting)
-- [Documentation Style Guide](https://jobops.dakheera47.com/docs/next/reference/documentation-style-guide)
-- [FAQ (includes where to edit docs)](https://jobops.dakheera47.com/docs/next/reference/faq)
-- [Add an Extractor Workflow](https://jobops.dakheera47.com/docs/next/workflows/add-an-extractor)
-- [Troubleshooting](https://jobops.dakheera47.com/docs/next/troubleshooting/common-problems)
+- [Documentation Style Guide](https://jobops.dakheera47.com/docs/reference/documentation-style-guide)
+- [FAQ (includes where to edit docs)](https://jobops.dakheera47.com/docs/reference/faq)
+- [Add an Extractor Workflow](https://jobops.dakheera47.com/docs/workflows/add-an-extractor)
+- [Troubleshooting](https://jobops.dakheera47.com/docs/troubleshooting/common-problems)

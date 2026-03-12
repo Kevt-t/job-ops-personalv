@@ -7,16 +7,16 @@ sidebar_position: 1
 
 This page helps you choose the right extractor for your run, understand key constraints, and navigate to detailed technical guides.
 
-Extractor integrations are now registered through manifests and loaded automatically at orchestrator startup. Runtime discovery only scans `extractors/*/(manifest.ts|src/manifest.ts)` and does not read manifests from `orchestrator/**`. Extractor-specific run logic should also remain in `extractors/<name>/` so orchestrator stays source-agnostic. To add a new source, follow [Add an Extractor](/docs/next/workflows/add-an-extractor).
+Extractor integrations are now registered through manifests and loaded automatically at orchestrator startup. Runtime discovery only scans `extractors/*/(manifest.ts|src/manifest.ts)` and does not read manifests from `orchestrator/**`. Extractor-specific run logic should also remain in `extractors/<name>/` so orchestrator stays source-agnostic. To add a new source, follow [Add an Extractor](/workflows/add-an-extractor).
 
 ## Extractor chooser
 
 | Extractor | Best use case | Core constraints/dependencies | Notable controls | Output/behavior notes |
 | --- | --- | --- | --- | --- |
-| [JobSpy](/docs/next/extractors/jobspy) | Multi-source discovery (Indeed, LinkedIn, Glassdoor) | Requires Python wrapper execution per term; source availability and quality vary by site/location | `JOBSPY_SITES`, `JOBSPY_SEARCH_TERMS`, `JOBSPY_RESULTS_WANTED`, `JOBSPY_HOURS_OLD`, `JOBSPY_LINKEDIN_FETCH_DESCRIPTION` | Produces JSON per term, then orchestrator normalizes and de-duplicates by `jobUrl` |
-| [Adzuna](/docs/next/extractors/adzuna) | API-based multi-country discovery with low scraping overhead | Requires valid App ID/App Key; country must be in Adzuna-supported list | `ADZUNA_APP_ID`, `ADZUNA_APP_KEY`, `ADZUNA_MAX_JOBS_PER_TERM` | API pagination to dataset output; orchestrator maps progress and de-duplicates by `sourceJobId`/`jobUrl` |
-| [Hiring Cafe](/docs/next/extractors/hiring-cafe) | Browser-backed discovery using Hiring Cafe search APIs | Subject to upstream anti-bot checks; uses browser context and encoded search-state payloads | `HIRING_CAFE_SEARCH_TERMS`, `HIRING_CAFE_COUNTRY`, `HIRING_CAFE_MAX_JOBS_PER_TERM`, `HIRING_CAFE_DATE_FETCHED_PAST_N_DAYS` | Uses existing pipeline term/country/budget knobs and maps directly to normalized jobs |
-| [Manual Import](/docs/next/extractors/manual) | One-off jobs not covered by scrapers | Inference quality depends on model/provider and input quality; some URLs cannot be fetched reliably | App/API endpoints (`/api/manual-jobs/infer`, `/api/manual-jobs/import`) | Accepts text/HTML/URL, runs inference, then saves and scores job after review |
+| [JobSpy](/extractors/jobspy) | Multi-source discovery (Indeed, LinkedIn, Glassdoor) | Requires Python wrapper execution per term; source availability and quality vary by site/location | `JOBSPY_SITES`, `JOBSPY_SEARCH_TERMS`, `JOBSPY_RESULTS_WANTED`, `JOBSPY_HOURS_OLD`, `JOBSPY_LINKEDIN_FETCH_DESCRIPTION` | Produces JSON per term, then orchestrator normalizes and de-duplicates by `jobUrl` |
+| [Adzuna](/extractors/adzuna) | API-based multi-country discovery with low scraping overhead | Requires valid App ID/App Key; country must be in Adzuna-supported list | `ADZUNA_APP_ID`, `ADZUNA_APP_KEY`, `ADZUNA_MAX_JOBS_PER_TERM` | API pagination to dataset output; orchestrator maps progress and de-duplicates by `sourceJobId`/`jobUrl` |
+| [Hiring Cafe](/extractors/hiring-cafe) | Browser-backed discovery using Hiring Cafe search APIs | Subject to upstream anti-bot checks; uses browser context and encoded search-state payloads | `HIRING_CAFE_SEARCH_TERMS`, `HIRING_CAFE_COUNTRY`, `HIRING_CAFE_MAX_JOBS_PER_TERM`, `HIRING_CAFE_DATE_FETCHED_PAST_N_DAYS` | Uses existing pipeline term/country/budget knobs and maps directly to normalized jobs |
+| [Manual Import](/extractors/manual) | One-off jobs not covered by scrapers | Inference quality depends on model/provider and input quality; some URLs cannot be fetched reliably | App/API endpoints (`/api/manual-jobs/infer`, `/api/manual-jobs/import`) | Accepts text/HTML/URL, runs inference, then saves and scores job after review |
 
 ## Which extractor should I use?
 
@@ -29,8 +29,8 @@ Many runs combine sources: broad discovery first, then manual import for high-pr
 
 ## Related extractor docs
 
-- [JobSpy](/docs/next/extractors/jobspy)
-- [Adzuna](/docs/next/extractors/adzuna)
-- [Hiring Cafe](/docs/next/extractors/hiring-cafe)
-- [Manual Import](/docs/next/extractors/manual)
-- [Add an Extractor](/docs/next/workflows/add-an-extractor)
+- [JobSpy](/extractors/jobspy)
+- [Adzuna](/extractors/adzuna)
+- [Hiring Cafe](/extractors/hiring-cafe)
+- [Manual Import](/extractors/manual)
+- [Add an Extractor](/workflows/add-an-extractor)

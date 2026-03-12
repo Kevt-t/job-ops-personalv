@@ -61,6 +61,6 @@ Supported countries in this integration:
 
 ## Related pages
 
-- [Extractors Overview](/docs/next/extractors/overview)
-- [Pipeline Run](/docs/next/features/pipeline-run)
-- [Settings](/docs/next/features/settings)
+- [Extractors Overview](/extractors/overview)
+- [Pipeline Run](/features/pipeline-run)
+- [Settings](/features/settings)

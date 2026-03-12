@@ -145,6 +145,6 @@ Fix:
 
 ## Related pages
 
-- [Settings](/docs/next/features/settings)
-- [Reactive Resume](/docs/next/features/reactive-resume)
-- [Find Jobs and Apply Workflow](/docs/next/workflows/find-jobs-and-apply-workflow)
+- [Settings](/features/settings)
+- [Reactive Resume](/features/reactive-resume)
+- [Find Jobs and Apply Workflow](/workflows/find-jobs-and-apply-workflow)

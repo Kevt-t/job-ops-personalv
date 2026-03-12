@@ -54,7 +54,7 @@ It exists to ensure:
 
 Ghostwriter is available in `discovered` and `ready` job views.
 
-For details, see [Ghostwriter](/docs/next/features/ghostwriter).
+For details, see [Ghostwriter](/features/ghostwriter).
 
 ### Ready tab search links
 
@@ -132,6 +132,6 @@ curl -X POST "http://localhost:3001/api/jobs/<jobId>/generate-pdf"
 
 ## Related pages
 
-- [Pipeline Run](/docs/next/features/pipeline-run)
-- [Ghostwriter](/docs/next/features/ghostwriter)
-- [Reactive Resume](/docs/next/features/reactive-resume)
+- [Pipeline Run](/features/pipeline-run)
+- [Ghostwriter](/features/ghostwriter)
+- [Reactive Resume](/features/reactive-resume)
