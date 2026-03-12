@@ -10,72 +10,72 @@ Welcome to the JobOps documentation. This site contains guides for setup, config
 
 ## Getting Started
 
-- **[Self-Hosting Guide](/docs/next/getting-started/self-hosting)**
+- **[Self-Hosting Guide](/getting-started/self-hosting)**
   - Docker setup instructions
   - Environment variables reference
   - Demo mode deployment
 
-- **[Database Backups](/docs/next/getting-started/database-backups)**
+- **[Database Backups](/getting-started/database-backups)**
   - Automatic backup scheduling and retention
   - Manual backup creation/deletion
   - Restore workflow and troubleshooting
 
 ## Workflows
 
-- **[Find Jobs and Apply Workflow](/docs/next/workflows/find-jobs-and-apply-workflow)**
+- **[Find Jobs and Apply Workflow](/workflows/find-jobs-and-apply-workflow)**
   - Run pipeline first, then review discovered and ready jobs
   - Use fit assessment and score to prioritize applications
   - Mark jobs as applied to trigger webhooks and analytics
 
 ## Feature Documentation
 
-- **[Orchestrator](/docs/next/features/orchestrator)**
+- **[Orchestrator](/features/orchestrator)**
   - Job states explained (`discovered`, `ready`, `applied`, etc.)
   - The ready flow (manual vs auto)
   - PDF generation and regeneration
   - Post-application tracking overview
 
-- **[Pipeline Run](/docs/next/features/pipeline-run)**
+- **[Pipeline Run](/features/pipeline-run)**
   - Run modal controls (`Automatic` vs `Manual`)
   - Presets, source/country compatibility, and advanced settings
   - Run estimate and start conditions
 
-- **[Job Search Bar](/docs/next/features/job-search-bar)**
+- **[Job Search Bar](/features/job-search-bar)**
   - Open with `Cmd+K` / `Ctrl+K` or the Search button
   - Fuzzy search across title, company, and location
   - Use `@status` lock syntax to scope results quickly
 
-- **[Keyboard Shortcuts](/docs/next/features/keyboard-shortcuts)**
+- **[Keyboard Shortcuts](/features/keyboard-shortcuts)**
   - Full Jobs-page shortcut reference by context
   - `?` shortcut help dialog and `Control` hint bar behavior
   - Tab-specific actions like skip, move to ready, and mark applied
 
-- **[Multi-Select and Bulk Actions](/docs/next/features/multi-select-and-bulk-actions)**
+- **[Multi-Select and Bulk Actions](/features/multi-select-and-bulk-actions)**
   - Select many jobs using row checkboxes or select-all
   - Run bulk move, skip, and rescore actions from the floating action bar
   - Keyboard support for select, clear, and fast bulk move-to-ready
 
-- **[Settings](/docs/next/features/settings)**
+- **[Settings](/features/settings)**
   - LLM provider/model and task-specific overrides
   - Webhooks, service accounts, and basic auth controls
   - Backup scheduling, scoring thresholds, and danger-zone cleanup tools
 
-- **[Reactive Resume](/docs/next/features/reactive-resume)**
+- **[Reactive Resume](/features/reactive-resume)**
   - Base resume selection and RxResume integration
   - Project inclusion controls (must-include, AI-selectable, max)
   - PDF generation behavior and troubleshooting
 
-- **[Applications Overview](/docs/next/features/overview)**
+- **[Applications Overview](/features/overview)**
   - Applications-per-day trend
   - Conversion analytics and funnel
   - Duration window controls (`7d`, `14d`, `30d`, `90d`)
 
-- **[In Progress Board](/docs/next/features/in-progress-board)**
+- **[In Progress Board](/features/in-progress-board)**
   - Pre-application vs post-application workflow split
   - Kanban tracking for higher-attention opportunities
   - Drag-and-drop stage management
 
-- **[Ghostwriter](/docs/next/features/ghostwriter)**
+- **[Ghostwriter](/features/ghostwriter)**
   - One persistent conversation per job
   - Streaming responses, stop, and regenerate
   - Markdown rendering and drawer behavior
@@ -83,9 +83,9 @@ Welcome to the JobOps documentation. This site contains guides for setup, config
 
 ## Extractors
 
-- **[Extractors Overview](/docs/next/extractors/overview)**
-- **[JobSpy](/docs/next/extractors/jobspy)**
-- **[Manual Import](/docs/next/extractors/manual)**
+- **[Extractors Overview](/extractors/overview)**
+- **[JobSpy](/extractors/jobspy)**
+- **[Manual Import](/extractors/manual)**
 
 ## Quick Reference
 

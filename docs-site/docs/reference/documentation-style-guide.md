@@ -27,9 +27,8 @@ Every doc should include:
 - Prefer concrete steps over abstract prose.
 - Provide copy-pasteable examples.
 - State defaults and constraints explicitly.
-- Use absolute `/docs/...` URLs and include the version segment when needed.
-- For current docs, use `/docs/next/...` links.
-- For versioned docs, link within that version (for example `/docs/...` in `version-0.1.20`).
+- Use root-relative paths (e.g. `/features/settings`) for internal doc links.
+- Do not use `/docs/next/...` prefixes — these break production builds.
 
 ## PR expectations
 
