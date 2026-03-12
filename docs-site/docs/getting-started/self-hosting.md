@@ -41,58 +41,6 @@ The onboarding wizard helps you validate and save:
 
 Settings are saved to the local database.
 
-## Gmail OAuth (Tracking Inbox)
-
-If you want Gmail integration, configure OAuth credentials.
-
-### 1) Create Google OAuth credentials
-
-In Google Cloud:
-
-1. Configure OAuth consent screen.
-2. Enable Gmail API.
-3. Create OAuth client ID (`Web application`).
-4. Add redirect URI:
-  - `http://localhost:3005/oauth/gmail/callback`
-  - Or your production URL, for example `https://your-domain.com/oauth/gmail/callback`
-
-### 2) Configure environment variables
-
-- `GMAIL_OAUTH_CLIENT_ID` (required)
-- `GMAIL_OAUTH_CLIENT_SECRET` (required)
-- `GMAIL_OAUTH_REDIRECT_URI` (optional, recommended in production)
-
-### 3) Restart and connect
-
-- Restart container
-- Open Tracking Inbox and click **Connect Gmail**
-
-For a full step-by-step setup, exact scope requirements, and troubleshooting, see:
-
-- [Gmail OAuth Setup](/docs/next/getting-started/gmail-oauth-setup)
-
-## Email-to-job matching overview
-
-```mermaid
-flowchart TD
-    A[Recruitment email arrives in Gmail] --> B[Smart Router AI analyzes content]
-    B --> C{How confident is the match?}
-
-    C -->|95-100%| D[Auto-linked to job]
-    D --> E[Timeline updated automatically]
-
-    C -->|50-94%| F[Goes to Inbox for review with suggested job match]
-
-    C -->|<50%| G{Is it relevant?}
-    G -->|Yes| H[Goes to Inbox as orphan]
-    G -->|No| I[Ignored]
-
-    F --> J{User review}
-    H --> J
-    J -->|Approve| K[Linked to job + timeline update]
-    J -->|Ignore| L[Marked not relevant]
-```
-
 ## Persistent data
 
 `./data` bind-mount stores:

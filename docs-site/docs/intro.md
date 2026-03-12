@@ -12,7 +12,6 @@ Welcome to the JobOps documentation. This site contains guides for setup, config
 
 - **[Self-Hosting Guide](/docs/next/getting-started/self-hosting)**
   - Docker setup instructions
-  - Gmail OAuth configuration for email tracking
   - Environment variables reference
   - Demo mode deployment
 
@@ -27,11 +26,6 @@ Welcome to the JobOps documentation. This site contains guides for setup, config
   - Run pipeline first, then review discovered and ready jobs
   - Use fit assessment and score to prioritize applications
   - Mark jobs as applied to trigger webhooks and analytics
-
-- **[Post-Application Workflow](/docs/next/workflows/post-application-workflow)**
-  - Track events manually for direct control
-  - Or configure automatic Gmail sync and inbox review
-  - Move confirmed updates into in-progress tracking
 
 ## Feature Documentation
 
@@ -87,13 +81,6 @@ Welcome to the JobOps documentation. This site contains guides for setup, config
   - Markdown rendering and drawer behavior
   - Writing style settings impact
 
-- **[Post-Application Tracking](/docs/next/features/post-application-tracking)**
-  - How the Smart Router AI works
-  - Gmail integration setup
-  - Using the Tracking Inbox
-  - Privacy and security details
-  - API reference
-
 ## Extractors
 
 - **[Extractors Overview](/docs/next/extractors/overview)**
@@ -115,8 +102,6 @@ Welcome to the JobOps documentation. This site contains guides for setup, config
 3. **Resume Tailoring**: Generate custom resumes for each job.
 4. **PDF Export**: Create tailored PDFs via RxResume integration.
 5. **Application Tracking**: Monitor your applied jobs.
-6. **Email Tracking**: Auto-track post-application responses.
-
 ## Contributing to Documentation
 
 When adding user-visible behavior:

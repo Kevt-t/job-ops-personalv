@@ -16,8 +16,6 @@ It controls:
 - job lifecycle states
 - manual and automatic ready flow
 - PDF generation and regeneration
-- handoff to post-application tracking
-
 Job states:
 
 - `discovered`: found by crawler/import, not tailored yet
@@ -137,4 +135,3 @@ curl -X POST "http://localhost:3001/api/jobs/<jobId>/generate-pdf"
 - [Pipeline Run](/docs/next/features/pipeline-run)
 - [Ghostwriter](/docs/next/features/ghostwriter)
 - [Reactive Resume](/docs/next/features/reactive-resume)
-- [Post-Application Tracking](/docs/next/features/post-application-tracking)

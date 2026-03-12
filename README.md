@@ -11,7 +11,7 @@
 
 Stop applying blind.
 
-Scrapes major job boards (LinkedIn, Indeed, Glassdoor & more), AI-scores suitability, tailors resumes (RxResume), and tracks application emails automatically.
+Scrapes major job boards (LinkedIn, Indeed, Glassdoor & more), AI-scores suitability, and tailors resumes (RxResume).
 
 You still apply to every job yourself. JobOps just finds jobs, makes sure you're applying to the right ones with a tailored CV, and not losing track of where you're at.
 
@@ -71,7 +71,6 @@ docker compose up -d
 * **Universal Scraping**: Supports **LinkedIn, Indeed, Glassdoor, Adzuna, Hiring Café**.
 * **AI Scoring**: Ranks jobs by fit against *your* profile using your preferred LLM (OpenAI, OpenRouter, `openai-compatible` endpoints such as LM Studio/Ollama, Gemini).
 * **Auto-Tailoring**: Generates custom resumes (PDFs) for every application using RxResume v4.
-* **Email Tracking**: Connect Gmail to auto-detect interviews, offers, and rejections.
 * **Self-Hosted**: Your data stays with you. SQLite database. No SaaS fees.
 
 ## Workflow
@@ -80,8 +79,6 @@ docker compose up -d
 2. **Score**: AI ranks jobs (0-100) based on your resume/profile.
 3. **Tailor**: Generates a custom resume summary & keyword optimization for top matches.
 4. **Export**: Uses [RxResume v4](https://v4.rxresu.me) to create tailored PDFs.
-5. **Track**: "Smart Router" AI watches your inbox for recruiter replies.
-
 ## Supported Extractors
 
 | Platform | Focus |
@@ -93,15 +90,6 @@ docker compose up -d
 | **Hiring Café** | Global / General |
 
 *(More extractors can be added via TypeScript - see [extractors documentation](https://jobops.dakheera47.com/docs/extractors/overview))*
-
-## Post-App Tracking (Killer Feature)
-
-Connect Gmail → AI routes emails to your applied jobs.
-
-* "We'd like to interview you..." → **Status: Interviewing** (Auto-updated)
-* "Unfortunately..." → **Status: Rejected** (Auto-updated)
-
-See [post-application tracking docs](https://jobops.dakheera47.com/docs/features/post-application-tracking) for setup.
 
 **Note on Analytics**: The alpha version includes anonymous analytics (Umami) to help debug performance. To opt-out, block `umami.dakheera47.com` in your firewall/DNS.
 

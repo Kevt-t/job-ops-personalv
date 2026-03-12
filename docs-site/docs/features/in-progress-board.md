@@ -44,7 +44,6 @@ Jobs typically move into post-application tracking when they receive a response 
 
 This can happen via:
 
-- Tracking Inbox review/automation (recommended)
 - Manual stage transitions in job detail/timeline tools
 
 ### API examples
@@ -89,4 +88,3 @@ curl -X POST "http://localhost:3001/api/jobs/<jobId>/stage-events" \
 
 - [Overview](/docs/next/features/overview)
 - [Orchestrator](/docs/next/features/orchestrator)
-- [Post-Application Tracking](/docs/next/features/post-application-tracking)
