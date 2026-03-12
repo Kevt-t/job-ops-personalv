@@ -239,7 +239,6 @@ export const OrchestratorPage: React.FC = () => {
       const nextParams = new URLSearchParams(searchParams);
       for (const key of [
         "source",
-        "sponsor",
         "salaryMode",
         "salaryMin",
         "salaryMax",

@@ -29,7 +29,6 @@ import { useNavigate, useParams } from "react-router-dom";
 import { toast } from "sonner";
 import { invalidateJobData } from "@/client/hooks/queries/invalidate";
 import {
-  useCheckSponsorMutation,
   useGenerateJobPdfMutation,
   useMarkAsAppliedMutation,
   useRescoreJobMutation,
@@ -112,7 +111,6 @@ export const JobPage: React.FC = () => {
   const skipJobMutation = useSkipJobMutation();
   const rescoreJobMutation = useRescoreJobMutation();
   const generatePdfMutation = useGenerateJobPdfMutation();
-  const checkSponsorMutation = useCheckSponsorMutation();
 
   const job = jobQuery.data ?? null;
   const events = mergeEvents(eventsQuery.data ?? [], pendingEventRef.current);
@@ -297,14 +295,6 @@ export const JobPage: React.FC = () => {
     });
   };
 
-  const handleCheckSponsor = async () => {
-    await runAction("check-sponsor", async () => {
-      if (!job) return;
-      await checkSponsorMutation.mutateAsync(job.id);
-      toast.success("Sponsor check completed");
-    });
-  };
-
   const handleCopyJobInfo = async () => {
     if (!job) return;
     try {
@@ -353,7 +343,6 @@ export const JobPage: React.FC = () => {
         <JobHeader
           job={job}
           className="rounded-lg border border-border/40 bg-muted/5 p-4"
-          onCheckSponsor={handleCheckSponsor}
         />
       ) : (
         <div className="rounded-lg border border-dashed border-border/40 p-6 text-sm text-muted-foreground">
@@ -519,10 +508,6 @@ export const JobPage: React.FC = () => {
                       Recalculate match
                     </DropdownMenuItem>
                   )}
-                  <DropdownMenuSeparator />
-                  <DropdownMenuItem onSelect={() => void handleCheckSponsor()}>
-                    Check sponsorship status
-                  </DropdownMenuItem>
                 </DropdownMenuContent>
               </DropdownMenu>
             </div>

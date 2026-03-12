@@ -31,7 +31,6 @@ interface DecideModeProps {
   onRescore: () => void;
   isRescoring: boolean;
   onEditDetails: () => void;
-  onCheckSponsor?: () => Promise<void>;
 }
 
 export const DecideMode: React.FC<DecideModeProps> = ({
@@ -42,7 +41,6 @@ export const DecideMode: React.FC<DecideModeProps> = ({
   onRescore,
   isRescoring,
   onEditDetails,
-  onCheckSponsor,
 }) => {
   const [showDescription, setShowDescription] = useState(false);
   const jobLink = job.applicationLink || job.jobUrl;
@@ -55,7 +53,7 @@ export const DecideMode: React.FC<DecideModeProps> = ({
   return (
     <div className="flex flex-col h-full">
       <div className="space-y-4 pb-4">
-        <JobHeader job={job} onCheckSponsor={onCheckSponsor} />
+        <JobHeader job={job} />
 
         <div className="flex flex-col gap-2.5 pt-2 sm:flex-row">
           <Button

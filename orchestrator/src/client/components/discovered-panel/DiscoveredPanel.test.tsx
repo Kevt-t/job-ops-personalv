@@ -52,7 +52,6 @@ vi.mock("@client/api", () => ({
   rescoreJob: vi.fn(),
   skipJob: vi.fn(),
   processJob: vi.fn(),
-  checkSponsor: vi.fn(),
 }));
 
 vi.mock("../JobDetailsEditDrawer", () => ({
