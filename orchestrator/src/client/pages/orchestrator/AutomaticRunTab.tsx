@@ -183,8 +183,6 @@ export const AutomaticRunTab: React.FC<AutomaticRunTabProps> = ({
     const rememberedRunBudget =
       settings?.jobspyResultsWanted?.value ??
       settings?.adzunaMaxJobsPerTerm?.value ??
-      settings?.gradcrackerMaxJobsPerTerm?.value ??
-      settings?.ukvisajobsMaxJobs?.value ??
       DEFAULT_VALUES.runBudget;
     const hasExplicitLocationOverride = Boolean(
       settings?.jobspyCountryIndeed?.override ||

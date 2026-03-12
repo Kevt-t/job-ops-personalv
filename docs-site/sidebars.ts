@@ -8,7 +8,6 @@ const sidebars: SidebarsConfig = {
       label: "Getting Started",
       items: [
         "getting-started/self-hosting",
-        "getting-started/gmail-oauth-setup",
       ],
     },
     {
@@ -16,9 +15,7 @@ const sidebars: SidebarsConfig = {
       label: "Workflows",
       items: [
         "workflows/find-jobs-and-apply-workflow",
-        "workflows/post-application-workflow",
         "workflows/add-an-extractor",
-        "workflows/add-a-visa-sponsor-provider",
       ],
     },
     {
@@ -35,8 +32,6 @@ const sidebars: SidebarsConfig = {
         "features/reactive-resume",
         "features/in-progress-board",
         "features/ghostwriter",
-        "features/post-application-tracking",
-        "features/visa-sponsors",
         "features/tracer-links",
       ],
     },
@@ -45,12 +40,10 @@ const sidebars: SidebarsConfig = {
       label: "Extractors",
       items: [
         "extractors/overview",
-        "extractors/gradcracker",
         "extractors/jobspy",
         "extractors/adzuna",
         "extractors/hiring-cafe",
         "extractors/manual",
-        "extractors/ukvisajobs",
       ],
     },
     {
@@ -58,7 +51,6 @@ const sidebars: SidebarsConfig = {
       label: "Self-Hosting & Ops",
       items: [
         "getting-started/self-hosting",
-        "getting-started/gmail-oauth-setup",
         "getting-started/database-backups",
         "troubleshooting/common-problems",
       ],

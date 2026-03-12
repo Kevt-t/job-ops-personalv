@@ -214,33 +214,11 @@ describe("SettingsPage", () => {
 
     await screen.findByRole("button", { name: /model/i });
     expect(
-      screen.queryByRole("button", { name: /ukvisajobs extractor/i }),
-    ).not.toBeInTheDocument();
-    expect(
-      screen.queryByRole("button", { name: /gradcracker extractor/i }),
-    ).not.toBeInTheDocument();
-    expect(
       screen.queryByRole("button", { name: /search terms/i }),
     ).not.toBeInTheDocument();
     expect(
       screen.queryByRole("button", { name: /jobspy scraper/i }),
     ).not.toBeInTheDocument();
-  });
-
-  it("enables save button when display setting is changed", async () => {
-    vi.mocked(api.getSettings).mockResolvedValue(baseSettings);
-    renderPage();
-    const saveButton = screen.getByRole("button", { name: /^save$/i });
-
-    const displayTrigger = await screen.findByRole("button", {
-      name: /display settings/i,
-    });
-    fireEvent.click(displayTrigger);
-    const sponsorCheckbox = screen.getByLabelText(
-      /show visa sponsor information/i,
-    );
-    fireEvent.click(sponsorCheckbox);
-    await waitFor(() => expect(saveButton).toBeEnabled());
   });
 
   it("allows saving when both Reactive Resume v4 and v5 credentials are present", async () => {
@@ -256,14 +234,13 @@ describe("SettingsPage", () => {
 
     renderPage();
 
-    const displayTrigger = await screen.findByRole("button", {
-      name: /display settings/i,
+    const envTrigger = await screen.findByRole("button", {
+      name: /environment & accounts/i,
     });
-    fireEvent.click(displayTrigger);
-    const sponsorCheckbox = screen.getByLabelText(
-      /show visa sponsor information/i,
-    );
-    fireEvent.click(sponsorCheckbox);
+    fireEvent.click(envTrigger);
+
+    const authCheckbox = screen.getByLabelText(/enable basic authentication/i);
+    fireEvent.click(authCheckbox);
 
     const saveButton = screen.getByRole("button", { name: /^save$/i });
     await waitFor(() => expect(saveButton).toBeEnabled());

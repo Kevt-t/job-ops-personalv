@@ -45,7 +45,7 @@ vi.mock("@/components/ui/dropdown-menu", () => {
 });
 
 vi.mock("@client/hooks/useSettings", () => ({
-  useSettings: () => ({ showSponsorInfo: false }),
+  useSettings: () => ({}),
 }));
 
 vi.mock("@client/api", () => ({

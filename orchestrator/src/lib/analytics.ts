@@ -115,12 +115,6 @@ type ProductEventMap = {
     origin: "top_links" | "drilldown";
     drilldown_mode: "human" | "all";
   };
-  visa_sponsor_search: {
-    query_length_bucket: string;
-    limit?: number;
-    min_score?: number;
-    country?: string;
-  };
 };
 
 type ProductEventName = keyof ProductEventMap;

@@ -13,7 +13,6 @@ import {
 import { BackupSettingsSection } from "@client/pages/settings/components/BackupSettingsSection";
 import { ChatSettingsSection } from "@client/pages/settings/components/ChatSettingsSection";
 import { DangerZoneSection } from "@client/pages/settings/components/DangerZoneSection";
-import { DisplaySettingsSection } from "@client/pages/settings/components/DisplaySettingsSection";
 import { EnvironmentSettingsSection } from "@client/pages/settings/components/EnvironmentSettingsSection";
 import { ModelSettingsSection } from "@client/pages/settings/components/ModelSettingsSection";
 import { ReactiveResumeSection } from "@client/pages/settings/components/ReactiveResumeSection";
@@ -67,7 +66,6 @@ const DEFAULT_FORM_VALUES: UpdateSettingsInput = {
   resumeProjects: null,
   rxresumeMode: "v5",
   rxresumeBaseResumeId: null,
-  showSponsorInfo: null,
   chatStyleTone: "",
   chatStyleFormality: "",
   chatStyleConstraints: "",
@@ -79,8 +77,6 @@ const DEFAULT_FORM_VALUES: UpdateSettingsInput = {
   rxresumeApiKey: "",
   basicAuthUser: "",
   basicAuthPassword: "",
-  ukvisajobsEmail: "",
-  ukvisajobsPassword: "",
   adzunaAppId: "",
   adzunaAppKey: "",
   webhookSecret: "",
@@ -124,7 +120,6 @@ const NULL_SETTINGS_PAYLOAD: UpdateSettingsInput = {
   resumeProjects: null,
   rxresumeMode: null,
   rxresumeBaseResumeId: null,
-  showSponsorInfo: null,
   chatStyleTone: null,
   chatStyleFormality: null,
   chatStyleConstraints: null,
@@ -136,8 +131,6 @@ const NULL_SETTINGS_PAYLOAD: UpdateSettingsInput = {
   rxresumeApiKey: null,
   basicAuthUser: null,
   basicAuthPassword: null,
-  ukvisajobsEmail: null,
-  ukvisajobsPassword: null,
   adzunaAppId: null,
   adzunaAppKey: null,
   adzunaMaxJobsPerTerm: null,
@@ -166,7 +159,6 @@ const mapSettingsToForm = (data: AppSettings): UpdateSettingsInput => ({
   resumeProjects: data.resumeProjects.override,
   rxresumeMode: data.rxresumeMode.override ?? data.rxresumeMode.value,
   rxresumeBaseResumeId: data.rxresumeBaseResumeId,
-  showSponsorInfo: data.showSponsorInfo.override,
   chatStyleTone: data.chatStyleTone.override ?? "",
   chatStyleFormality: data.chatStyleFormality.override ?? "",
   chatStyleConstraints: data.chatStyleConstraints.override ?? "",
@@ -178,8 +170,6 @@ const mapSettingsToForm = (data: AppSettings): UpdateSettingsInput => ({
   rxresumeApiKey: "",
   basicAuthUser: data.basicAuthUser ?? "",
   basicAuthPassword: "",
-  ukvisajobsEmail: data.ukvisajobsEmail ?? "",
-  ukvisajobsPassword: "",
   adzunaAppId: data.adzunaAppId ?? "",
   adzunaAppKey: "",
   webhookSecret: "",
@@ -269,10 +259,6 @@ const getDerivedSettings = (settings: AppSettings | null) => {
       effective: settings?.jobCompleteWebhookUrl?.value ?? "",
       default: settings?.jobCompleteWebhookUrl?.default ?? "",
     },
-    display: {
-      effective: settings?.showSponsorInfo?.value ?? true,
-      default: settings?.showSponsorInfo?.default ?? true,
-    },
     chat: {
       tone: {
         effective: settings?.chatStyleTone?.value ?? "professional",
@@ -302,13 +288,11 @@ const getDerivedSettings = (settings: AppSettings | null) => {
     envSettings: {
       readable: {
         rxresumeEmail: settings?.rxresumeEmail ?? "",
-        ukvisajobsEmail: settings?.ukvisajobsEmail ?? "",
         adzunaAppId: settings?.adzunaAppId ?? "",
         basicAuthUser: settings?.basicAuthUser ?? "",
       },
       private: {
         rxresumePasswordHint: settings?.rxresumePasswordHint ?? null,
-        ukvisajobsPasswordHint: settings?.ukvisajobsPasswordHint ?? null,
         adzunaAppKeyHint: settings?.adzunaAppKeyHint ?? null,
         basicAuthPasswordHint: settings?.basicAuthPasswordHint ?? null,
         webhookSecretHint: settings?.webhookSecretHint ?? null,
@@ -528,7 +512,6 @@ export const SettingsPage: React.FC = () => {
     model,
     pipelineWebhook,
     jobCompleteWebhook,
-    display,
     chat,
     envSettings,
     defaultResumeProjects,
@@ -715,10 +698,6 @@ export const SettingsPage: React.FC = () => {
         envPayload.rxresumeEmail = normalizeString(data.rxresumeEmail);
       }
 
-      if (dirtyFields.ukvisajobsEmail || dirtyFields.ukvisajobsPassword) {
-        envPayload.ukvisajobsEmail = normalizeString(data.ukvisajobsEmail);
-      }
-
       if (dirtyFields.adzunaAppId || dirtyFields.adzunaAppKey) {
         envPayload.adzunaAppId = normalizeString(data.adzunaAppId);
       }
@@ -764,11 +743,6 @@ export const SettingsPage: React.FC = () => {
         if (value !== undefined) envPayload.rxresumeApiKey = value;
       }
 
-      if (dirtyFields.ukvisajobsPassword) {
-        const value = normalizePrivateInput(data.ukvisajobsPassword);
-        if (value !== undefined) envPayload.ukvisajobsPassword = value;
-      }
-
       if (dirtyFields.adzunaAppKey) {
         const value = normalizePrivateInput(data.adzunaAppKey);
         if (value !== undefined) envPayload.adzunaAppKey = value;
@@ -789,7 +763,6 @@ export const SettingsPage: React.FC = () => {
         resumeProjects: resumeProjectsOverride,
         rxresumeMode: data.rxresumeMode ?? "v5",
         rxresumeBaseResumeId: normalizeString(data.rxresumeBaseResumeId),
-        showSponsorInfo: nullIfSame(data.showSponsorInfo, display.default),
         chatStyleTone: normalizeString(data.chatStyleTone),
         chatStyleFormality: normalizeString(data.chatStyleFormality),
         chatStyleConstraints: normalizeString(data.chatStyleConstraints),
@@ -1001,11 +974,6 @@ export const SettingsPage: React.FC = () => {
             isLoading={isLoading || isTracerReadinessLoading}
             isChecking={isTracerReadinessChecking}
             onVerifyNow={handleVerifyTracerReadiness}
-          />
-          <DisplaySettingsSection
-            values={display}
-            isLoading={isLoading}
-            isSaving={isSaving}
           />
           <ChatSettingsSection
             values={chat}

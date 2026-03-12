@@ -60,8 +60,6 @@ Settings gives you runtime overrides for the key parts of discovery, scoring, ta
 
 ![Display settings section](/img/features/settings-display-section.png)
 
-- Toggle visa sponsor badge visibility in job lists/details
-
 ### Writing Style & Language
 
 ![Ghostwriter settings section](/img/features/settings-ghostwriter-section.png)
@@ -132,7 +130,6 @@ Readiness requires:
 
 - Configure service accounts:
   - RxResume email/password
-  - UKVisaJobs email/password
   - Adzuna app ID/app key
   - Optional basic authentication for write operations
 

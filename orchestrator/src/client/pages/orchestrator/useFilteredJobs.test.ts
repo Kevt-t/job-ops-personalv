@@ -15,31 +15,6 @@ const baseJob = createJob({
 });
 
 describe("useFilteredJobs", () => {
-  it("filters by sponsor status categories", () => {
-    const jobs: Job[] = [
-      { ...baseJob, id: "confirmed", sponsorMatchScore: 99 },
-      { ...baseJob, id: "potential", sponsorMatchScore: 82 },
-      { ...baseJob, id: "not-found", sponsorMatchScore: 45 },
-      { ...baseJob, id: "unknown", sponsorMatchScore: null },
-    ];
-
-    const { result } = renderHook(() =>
-      useFilteredJobs(
-        jobs,
-        "all",
-        "all",
-        "confirmed",
-        { mode: "at_least", min: null, max: null },
-        {
-          key: "score",
-          direction: "desc",
-        },
-      ),
-    );
-
-    expect(result.current.map((job) => job.id)).toEqual(["confirmed"]);
-  });
-
   it("filters by salary range using structured and text salary fields", () => {
     const jobs: Job[] = [
       { ...baseJob, id: "structured", salaryMinAmount: 70000 },
@@ -51,7 +26,6 @@ describe("useFilteredJobs", () => {
     const { result } = renderHook(() =>
       useFilteredJobs(
         jobs,
-        "all",
         "all",
         "all",
         { mode: "between", min: 60000, max: 80000 },
@@ -79,7 +53,6 @@ describe("useFilteredJobs", () => {
     const { result } = renderHook(() =>
       useFilteredJobs(
         jobs,
-        "all",
         "all",
         "all",
         { mode: "at_least", min: null, max: null },

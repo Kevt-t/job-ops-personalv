@@ -6,10 +6,8 @@ import {
 import type { JobSource, JobStatus } from "@shared/types";
 
 export const DEFAULT_PIPELINE_SOURCES: JobSource[] = [
-  "gradcracker",
   "indeed",
   "linkedin",
-  "ukvisajobs",
 ];
 export const PIPELINE_SOURCES_STORAGE_KEY = "jobops.pipeline.sources";
 
@@ -82,12 +80,6 @@ export type SortKey =
   | "title"
   | "employer";
 export type SortDirection = "asc" | "desc";
-export type SponsorFilter =
-  | "all"
-  | "confirmed"
-  | "potential"
-  | "not_found"
-  | "unknown";
 export type SalaryFilterMode = "at_least" | "at_most" | "between";
 
 export interface SalaryFilter {

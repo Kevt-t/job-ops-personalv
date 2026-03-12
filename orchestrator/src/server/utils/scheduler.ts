@@ -1,6 +1,6 @@
 /**
  * Shared daily scheduler utility for running tasks at a specific hour.
- * Used by visa-sponsors and backup services.
+ * Used by backup services.
  */
 
 export interface Scheduler {

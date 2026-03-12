@@ -190,13 +190,6 @@ export const settingsRegistry = {
     serialize: (value: "v4" | "v5" | null | undefined): string | null =>
       value ?? null,
   },
-  ukvisajobsMaxJobs: {
-    kind: "typed" as const,
-    schema: z.number().int().min(1).max(1000),
-    default: (): number => 50,
-    parse: parseIntOrNull,
-    serialize: serializeNullableNumber,
-  },
   adzunaMaxJobsPerTerm: {
     kind: "typed" as const,
     schema: z.number().int().min(1).max(1000),
@@ -207,13 +200,6 @@ export const settingsRegistry = {
           : "50",
         10,
       ),
-    parse: parseIntOrNull,
-    serialize: serializeNullableNumber,
-  },
-  gradcrackerMaxJobsPerTerm: {
-    kind: "typed" as const,
-    schema: z.number().int().min(1).max(1000),
-    default: (): number => 50,
     parse: parseIntOrNull,
     serialize: serializeNullableNumber,
   },
@@ -280,13 +266,6 @@ export const settingsRegistry = {
     parse: parseNonEmptyStringOrNull,
     serialize: (value: string | null | undefined): string | null =>
       value ?? null,
-  },
-  showSponsorInfo: {
-    kind: "typed" as const,
-    schema: z.boolean(),
-    default: (): boolean => true,
-    parse: parseBitBoolOrNull,
-    serialize: serializeBitBool,
   },
   chatStyleTone: {
     kind: "typed" as const,
@@ -462,11 +441,6 @@ export const settingsRegistry = {
     envKey: "RXRESUME_EMAIL",
     schema: z.string().trim().max(200),
   },
-  ukvisajobsEmail: {
-    kind: "string" as const,
-    envKey: "UKVISAJOBS_EMAIL",
-    schema: z.string().trim().max(200),
-  },
   adzunaAppId: {
     kind: "string" as const,
     envKey: "ADZUNA_APP_ID",
@@ -492,11 +466,6 @@ export const settingsRegistry = {
   rxresumeApiKey: {
     kind: "secret" as const,
     envKey: "RXRESUME_API_KEY",
-    schema: z.string().trim().max(2000),
-  },
-  ukvisajobsPassword: {
-    kind: "secret" as const,
-    envKey: "UKVISAJOBS_PASSWORD",
     schema: z.string().trim().max(2000),
   },
   adzunaAppKey: {

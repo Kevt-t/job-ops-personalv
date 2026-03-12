@@ -37,8 +37,6 @@ COPY shared/package*.json ./shared/
 COPY orchestrator/package*.json ./orchestrator/
 COPY extractors/adzuna/package*.json ./extractors/adzuna/
 COPY extractors/hiringcafe/package*.json ./extractors/hiringcafe/
-COPY extractors/gradcracker/package*.json ./extractors/gradcracker/
-COPY extractors/ukvisajobs/package*.json ./extractors/ukvisajobs/
 
 # Install Node dependencies with npm cache (dev deps needed for build)
 RUN --mount=type=cache,target=/root/.npm \
@@ -54,12 +52,9 @@ WORKDIR /app
 COPY shared ./shared
 COPY docs-site ./docs-site
 COPY orchestrator ./orchestrator
-COPY visa-sponsor-providers ./visa-sponsor-providers
 COPY extractors/adzuna ./extractors/adzuna
 COPY extractors/hiringcafe ./extractors/hiringcafe
-COPY extractors/gradcracker ./extractors/gradcracker
 COPY extractors/jobspy ./extractors/jobspy
-COPY extractors/ukvisajobs ./extractors/ukvisajobs
 
 # Build documentation site bundle
 WORKDIR /app/docs-site
@@ -104,8 +99,6 @@ COPY shared/package*.json ./shared/
 COPY orchestrator/package*.json ./orchestrator/
 COPY extractors/adzuna/package*.json ./extractors/adzuna/
 COPY extractors/hiringcafe/package*.json ./extractors/hiringcafe/
-COPY extractors/gradcracker/package*.json ./extractors/gradcracker/
-COPY extractors/ukvisajobs/package*.json ./extractors/ukvisajobs/
 
 # Install production Node dependencies only
 RUN --mount=type=cache,target=/root/.npm \
@@ -117,12 +110,9 @@ COPY --from=builder /app/orchestrator/dist ./orchestrator/dist
 COPY --from=builder /app/docs-site/build ./orchestrator/dist/docs
 COPY shared ./shared
 COPY orchestrator ./orchestrator
-COPY visa-sponsor-providers ./visa-sponsor-providers
 COPY extractors/adzuna ./extractors/adzuna
 COPY extractors/hiringcafe ./extractors/hiringcafe
-COPY extractors/gradcracker ./extractors/gradcracker
 COPY extractors/jobspy ./extractors/jobspy
-COPY extractors/ukvisajobs ./extractors/ukvisajobs
 
 # Reuse Camoufox binaries from builder instead of fetching again
 COPY --from=builder /root/.cache/camoufox /root/.cache/camoufox

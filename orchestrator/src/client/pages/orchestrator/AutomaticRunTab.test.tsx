@@ -38,7 +38,7 @@ describe("AutomaticRunTab", () => {
       <AutomaticRunTab
         open
         settings={createAppSettings()}
-        enabledSources={["linkedin", "gradcracker", "ukvisajobs"]}
+        enabledSources={["linkedin", "indeed"]}
         pipelineSources={["linkedin"]}
         onToggleSource={vi.fn()}
         onSetPipelineSources={vi.fn()}
@@ -69,7 +69,7 @@ describe("AutomaticRunTab", () => {
           },
           searchCities: { value: "", default: "", override: null },
         })}
-        enabledSources={["linkedin", "gradcracker", "ukvisajobs"]}
+        enabledSources={["linkedin", "indeed"]}
         pipelineSources={["linkedin"]}
         onToggleSource={vi.fn()}
         onSetPipelineSources={vi.fn()}
@@ -133,8 +133,8 @@ describe("AutomaticRunTab", () => {
           },
           searchCities: { value: "", default: "", override: null },
         })}
-        enabledSources={["linkedin", "gradcracker", "ukvisajobs"]}
-        pipelineSources={["linkedin", "gradcracker", "ukvisajobs"]}
+        enabledSources={["linkedin", "glassdoor"]}
+        pipelineSources={["linkedin", "glassdoor"]}
         onToggleSource={vi.fn()}
         onSetPipelineSources={onSetPipelineSources}
         isPipelineRunning={false}
@@ -145,42 +145,6 @@ describe("AutomaticRunTab", () => {
     await waitFor(() => {
       expect(onSetPipelineSources).toHaveBeenCalledWith(["linkedin"]);
     });
-
-    expect(screen.getByRole("button", { name: "Gradcracker" })).toBeDisabled();
-    expect(screen.getByRole("button", { name: "UK Visa Jobs" })).toBeDisabled();
-  });
-
-  it("shows disabled source guidance copy for UK-only source", async () => {
-    render(
-      <AutomaticRunTab
-        open
-        settings={createAppSettings({
-          searchTerms: {
-            value: ["backend engineer"],
-            default: ["backend engineer"],
-            override: null,
-          },
-          jobspyCountryIndeed: {
-            value: "united states",
-            default: "united kingdom",
-            override: "united states",
-          },
-          searchCities: { value: "", default: "", override: null },
-        })}
-        enabledSources={["linkedin", "gradcracker", "ukvisajobs"]}
-        pipelineSources={["linkedin"]}
-        onToggleSource={vi.fn()}
-        onSetPipelineSources={vi.fn()}
-        isPipelineRunning={false}
-        onSaveAndRun={vi.fn().mockResolvedValue(undefined)}
-      />,
-    );
-
-    expect(
-      screen.getByTitle(
-        "Gradcracker is available only when country is United Kingdom.",
-      ),
-    ).toBeInTheDocument();
   });
 
   it("disables glassdoor for unsupported countries with guidance copy", async () => {

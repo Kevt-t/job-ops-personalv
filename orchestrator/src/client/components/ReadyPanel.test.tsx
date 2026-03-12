@@ -49,7 +49,7 @@ vi.mock("../hooks/useProfile", () => ({
 }));
 
 vi.mock("../hooks/useSettings", () => ({
-  useSettings: () => ({ showSponsorInfo: false }),
+  useSettings: () => ({}),
 }));
 
 vi.mock("../api", () => ({

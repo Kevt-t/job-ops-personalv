@@ -31,7 +31,6 @@ import type {
   JobSort,
   SalaryFilter,
   SalaryFilterMode,
-  SponsorFilter,
 } from "./constants";
 import { defaultSortDirection, orderedFilterSources, tabs } from "./constants";
 
@@ -42,8 +41,6 @@ interface OrchestratorFiltersProps {
   onOpenCommandBar: () => void;
   sourceFilter: JobSource | "all";
   onSourceFilterChange: (value: JobSource | "all") => void;
-  sponsorFilter: SponsorFilter;
-  onSponsorFilterChange: (value: SponsorFilter) => void;
   salaryFilter: SalaryFilter;
   onSalaryFilterChange: (value: SalaryFilter) => void;
   sourcesWithJobs: JobSource[];
@@ -54,17 +51,6 @@ interface OrchestratorFiltersProps {
   isFiltersOpen?: boolean;
   onFiltersOpenChange?: (open: boolean) => void;
 }
-
-const sponsorOptions: Array<{
-  value: SponsorFilter;
-  label: string;
-}> = [
-  { value: "all", label: "All statuses" },
-  { value: "confirmed", label: "Confirmed sponsor" },
-  { value: "potential", label: "Potential sponsor" },
-  { value: "not_found", label: "Sponsor not found" },
-  { value: "unknown", label: "Unchecked sponsor" },
-];
 
 const salaryModeOptions: Array<{
   value: SalaryFilterMode;
@@ -119,8 +105,6 @@ export const OrchestratorFilters: React.FC<OrchestratorFiltersProps> = ({
   onOpenCommandBar,
   sourceFilter,
   onSourceFilterChange,
-  sponsorFilter,
-  onSponsorFilterChange,
   salaryFilter,
   onSalaryFilterChange,
   sourcesWithJobs,
@@ -142,12 +126,11 @@ export const OrchestratorFilters: React.FC<OrchestratorFiltersProps> = ({
   const activeFilterCount = useMemo(
     () =>
       Number(sourceFilter !== "all") +
-      Number(sponsorFilter !== "all") +
       Number(
         (typeof salaryFilter.min === "number" && salaryFilter.min > 0) ||
           (typeof salaryFilter.max === "number" && salaryFilter.max > 0),
       ),
-    [sourceFilter, sponsorFilter, salaryFilter.min, salaryFilter.max],
+    [sourceFilter, salaryFilter.min, salaryFilter.max],
   );
   const showSalaryMin =
     salaryFilter.mode === "at_least" || salaryFilter.mode === "between";
@@ -224,7 +207,7 @@ export const OrchestratorFilters: React.FC<OrchestratorFiltersProps> = ({
                     )}
                   </SheetTitle>
                   <SheetDescription>
-                    Refine sources, sponsor status, salary, and sorting.
+                    Refine sources, salary, and sorting.
                   </SheetDescription>
                 </SheetHeader>
 
@@ -255,29 +238,6 @@ export const OrchestratorFilters: React.FC<OrchestratorFiltersProps> = ({
                           onClick={() => onSourceFilterChange(source)}
                         >
                           {sourceLabel[source]}
-                        </Button>
-                      ))}
-                    </CardContent>
-                  </Card>
-
-                  <Card>
-                    <CardHeader className="pb-3">
-                      <CardTitle>Sponsor status</CardTitle>
-                    </CardHeader>
-                    <CardContent className="flex flex-wrap gap-2">
-                      {sponsorOptions.map((option) => (
-                        <Button
-                          key={option.value}
-                          type="button"
-                          size="sm"
-                          variant={
-                            sponsorFilter === option.value
-                              ? "default"
-                              : "outline"
-                          }
-                          onClick={() => onSponsorFilterChange(option.value)}
-                        >
-                          {option.label}
                         </Button>
                       ))}
                     </CardContent>

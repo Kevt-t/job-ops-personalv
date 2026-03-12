@@ -34,8 +34,3 @@ npm --workspace docs-site run build
 
 - Verify RxResume credentials.
 - Confirm selected base resume exists and is accessible.
-
-## UKVisaJobs runs fail
-
-- Re-authenticate by removing cached auth file or forcing refresh.
-- Verify extractor credentials and API response behavior.

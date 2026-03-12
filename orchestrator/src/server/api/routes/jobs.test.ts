@@ -881,38 +881,6 @@ describe.sequential("Jobs API routes", () => {
     expect(nanRes.status).toBe(400);
   });
 
-  it("checks visa sponsor status for a job", async () => {
-    const { searchSponsors } = await import(
-      "@server/services/visa-sponsors/index"
-    );
-    vi.mocked(searchSponsors).mockResolvedValue([
-      {
-        providerId: "uk",
-        countryKey: "united kingdom",
-        sponsor: { organisationName: "ACME CORP SPONSOR" } as any,
-        score: 100,
-        matchedName: "acme corp sponsor",
-      },
-    ]);
-
-    const { createJob } = await import("@server/repositories/jobs");
-    const job = await createJob({
-      source: "manual",
-      title: "Sponsored Dev",
-      employer: "Acme",
-      jobUrl: "https://example.com/job/4",
-    });
-
-    const res = await fetch(`${baseUrl}/api/jobs/${job.id}/check-sponsor`, {
-      method: "POST",
-    });
-    const body = await res.json();
-
-    expect(body.ok).toBe(true);
-    expect(body.data.sponsorMatchScore).toBe(100);
-    expect(body.data.sponsorMatchNames).toContain("ACME CORP SPONSOR");
-  });
-
   describe("Application Tracking", () => {
     let jobId: string;
 

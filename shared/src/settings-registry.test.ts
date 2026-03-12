@@ -18,13 +18,13 @@ describe("settingsRegistry helpers", () => {
 
   describe("number parsing and clamping", () => {
     it("returns null for empty/invalid values", () => {
-      expect(settingsRegistry.ukvisajobsMaxJobs.parse("")).toBeNull();
-      expect(settingsRegistry.ukvisajobsMaxJobs.parse("abc")).toBeNull();
-      expect(settingsRegistry.ukvisajobsMaxJobs.parse(undefined)).toBeNull();
+      expect(settingsRegistry.adzunaMaxJobsPerTerm.parse("")).toBeNull();
+      expect(settingsRegistry.adzunaMaxJobsPerTerm.parse("abc")).toBeNull();
+      expect(settingsRegistry.adzunaMaxJobsPerTerm.parse(undefined)).toBeNull();
     });
 
     it("parses valid numbers", () => {
-      expect(settingsRegistry.ukvisajobsMaxJobs.parse("42")).toBe(42);
+      expect(settingsRegistry.adzunaMaxJobsPerTerm.parse("42")).toBe(42);
     });
 
     it("clamps backupHour to 0-23", () => {
@@ -48,19 +48,19 @@ describe("settingsRegistry helpers", () => {
 
   describe("boolean (bit-bool) parsing and serialization", () => {
     it("parses bit bools correctly", () => {
-      expect(settingsRegistry.showSponsorInfo.parse("1")).toBe(true);
-      expect(settingsRegistry.showSponsorInfo.parse("true")).toBe(true);
-      expect(settingsRegistry.showSponsorInfo.parse("0")).toBe(false);
-      expect(settingsRegistry.showSponsorInfo.parse("false")).toBe(false);
-      expect(settingsRegistry.showSponsorInfo.parse("")).toBeNull();
-      expect(settingsRegistry.showSponsorInfo.parse(undefined)).toBeNull();
+      expect(settingsRegistry.backupEnabled.parse("1")).toBe(true);
+      expect(settingsRegistry.backupEnabled.parse("true")).toBe(true);
+      expect(settingsRegistry.backupEnabled.parse("0")).toBe(false);
+      expect(settingsRegistry.backupEnabled.parse("false")).toBe(false);
+      expect(settingsRegistry.backupEnabled.parse("")).toBeNull();
+      expect(settingsRegistry.backupEnabled.parse(undefined)).toBeNull();
     });
 
     it("serializes bit bools correctly", () => {
-      expect(settingsRegistry.showSponsorInfo.serialize(true)).toBe("1");
-      expect(settingsRegistry.showSponsorInfo.serialize(false)).toBe("0");
-      expect(settingsRegistry.showSponsorInfo.serialize(null)).toBeNull();
-      expect(settingsRegistry.showSponsorInfo.serialize(undefined)).toBeNull();
+      expect(settingsRegistry.backupEnabled.serialize(true)).toBe("1");
+      expect(settingsRegistry.backupEnabled.serialize(false)).toBe("0");
+      expect(settingsRegistry.backupEnabled.serialize(null)).toBeNull();
+      expect(settingsRegistry.backupEnabled.serialize(undefined)).toBeNull();
     });
   });
 

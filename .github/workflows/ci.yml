@@ -53,8 +53,6 @@ jobs:
           - orchestrator
           - adzuna-extractor
           - hiringcafe-extractor
-          - gradcracker-extractor
-          - ukvisajobs-extractor
     steps:
       - uses: actions/checkout@v4
       - name: Setup Node

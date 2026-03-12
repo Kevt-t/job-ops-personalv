@@ -35,7 +35,6 @@ import {
 import { getProfile } from "@server/services/profile";
 import { scoreJobSuitability } from "@server/services/scorer";
 import { getTracerReadiness } from "@server/services/tracer-links";
-import * as visaSponsors from "@server/services/visa-sponsors/index";
 import { asyncPool } from "@server/utils/async-pool";
 import {
   APPLICATION_OUTCOMES,
@@ -91,7 +90,6 @@ async function notifyJobCompleteWebhook(job: Job) {
         employer: job.employer,
         status: job.status,
         suitabilityScore: job.suitabilityScore,
-        sponsorMatchScore: job.sponsorMatchScore,
       },
     });
 
@@ -173,8 +171,6 @@ const updateJobSchema = z.object({
   selectedProjectIds: z.string().optional(),
   pdfPath: z.string().optional(),
   tracerLinksEnabled: z.boolean().optional(),
-  sponsorMatchScore: z.number().min(0).max(100).optional(),
-  sponsorMatchNames: z.string().optional(),
 });
 
 function isJobUrlConflictError(error: unknown): boolean {
@@ -1140,52 +1136,6 @@ jobsRouter.post("/:id/summarize", async (req: Request, res: Response) => {
 
     const job = await jobsRepo.getJobById(req.params.id);
     res.json({ success: true, data: job });
-  } catch (error) {
-    const message = error instanceof Error ? error.message : "Unknown error";
-    res.status(500).json({ success: false, error: message });
-  }
-});
-
-/**
- * POST /api/jobs/:id/check-sponsor - Check if employer is a visa sponsor
- */
-jobsRouter.post("/:id/check-sponsor", async (req: Request, res: Response) => {
-  try {
-    const job = await jobsRepo.getJobById(req.params.id);
-
-    if (!job) {
-      return fail(res, notFound("Job not found"));
-    }
-
-    if (!job.employer) {
-      return res
-        .status(400)
-        .json({ success: false, error: "Job has no employer name" });
-    }
-
-    // Search for sponsor matches
-    const sponsorResults = await visaSponsors.searchSponsors(job.employer, {
-      limit: 10,
-      minScore: 50,
-    });
-
-    const { sponsorMatchScore, sponsorMatchNames } =
-      visaSponsors.calculateSponsorMatchSummary(sponsorResults);
-
-    // Update job with sponsor match info
-    const updatedJob = await jobsRepo.updateJob(job.id, {
-      sponsorMatchScore: sponsorMatchScore,
-      sponsorMatchNames: sponsorMatchNames ?? undefined,
-    });
-
-    res.json({
-      success: true,
-      data: updatedJob,
-      matchResults: sponsorResults.slice(0, 5).map((r) => ({
-        name: r.sponsor.organisationName,
-        score: r.score,
-      })),
-    });
   } catch (error) {
     const message = error instanceof Error ? error.message : "Unknown error";
     res.status(500).json({ success: false, error: message });

@@ -29,7 +29,7 @@ describe("automatic-run utilities", () => {
         country: "united kingdom",
         cityLocations: [],
       },
-      sources: ["indeed", "linkedin", "gradcracker", "ukvisajobs"],
+      sources: ["indeed", "linkedin"],
     });
 
     expect(estimate.discovered.cap).toBe(100);
@@ -43,11 +43,10 @@ describe("automatic-run utilities", () => {
     const limits = deriveExtractorLimits({
       budget: 750,
       searchTerms: ["a", "b", "c"],
-      sources: ["indeed", "linkedin", "glassdoor", "gradcracker"],
+      sources: ["indeed", "linkedin", "glassdoor"],
     });
 
-    const cap =
-      3 * limits.jobspyResultsWanted * 3 + limits.gradcrackerMaxJobsPerTerm * 3;
+    const cap = 3 * limits.jobspyResultsWanted * 3;
 
     expect(cap).toBeLessThanOrEqual(750);
   });
@@ -62,7 +61,7 @@ describe("automatic-run utilities", () => {
         country: "united kingdom",
         cityLocations: [],
       },
-      sources: ["indeed", "linkedin", "gradcracker", "ukvisajobs"],
+      sources: ["indeed", "linkedin"],
     });
 
     expect(estimate).toEqual({

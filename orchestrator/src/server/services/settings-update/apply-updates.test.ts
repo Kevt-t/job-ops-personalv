@@ -34,7 +34,6 @@ describe("applySettingsUpdates", () => {
 
     const plan = await applySettingsUpdates({
       model: "gpt-4o-mini",
-      ukvisajobsMaxJobs: 42,
       adzunaMaxJobsPerTerm: 25,
       searchTerms: ["backend", "platform"],
       llmProvider: "openai",
@@ -42,11 +41,10 @@ describe("applySettingsUpdates", () => {
       adzunaAppKey: "app-key",
     });
 
-    expect(settingsRepo.setSetting).toHaveBeenCalledTimes(7);
+    expect(settingsRepo.setSetting).toHaveBeenCalledTimes(6);
     expect(vi.mocked(settingsRepo.setSetting).mock.calls).toEqual(
       expect.arrayContaining([
         ["model", "gpt-4o-mini"],
-        ["ukvisajobsMaxJobs", "42"],
         ["adzunaMaxJobsPerTerm", "25"],
         ["searchTerms", '["backend","platform"]'],
         ["llmProvider", "openai"],

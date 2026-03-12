@@ -33,8 +33,7 @@ function sourceBaseUrl(source: JobSource): string {
 const SOURCE_CYCLE: JobSource[] = [
   "linkedin",
   "indeed",
-  "gradcracker",
-  "ukvisajobs",
+  "adzuna",
   "manual",
 ];
 

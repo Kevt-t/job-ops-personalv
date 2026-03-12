@@ -23,11 +23,6 @@ vi.mock("@server/services/scorer", () => ({
   scoreJobSuitability: vi.fn(),
 }));
 
-vi.mock("@server/services/visa-sponsors/index", () => ({
-  searchSponsors: vi.fn(),
-  calculateSponsorMatchSummary: vi.fn(),
-}));
-
 vi.mock("../progress", () => ({
   updateProgress: vi.fn(),
   progressHelpers: {
@@ -43,7 +38,6 @@ describe("scoreJobsStep auto-skip behavior", () => {
     const jobsRepo = await import("@server/repositories/jobs");
     const settingsRepo = await import("@server/repositories/settings");
     const scorer = await import("@server/services/scorer");
-    const visaSponsors = await import("@server/services/visa-sponsors/index");
 
     vi.mocked(jobsRepo.getUnscoredDiscoveredJobs).mockResolvedValue([
       createJob({
@@ -59,11 +53,6 @@ describe("scoreJobsStep auto-skip behavior", () => {
     vi.mocked(scorer.scoreJobSuitability).mockResolvedValue({
       score: 40,
       reason: "Low fit",
-    });
-    vi.mocked(visaSponsors.searchSponsors).mockResolvedValue([]);
-    vi.mocked(visaSponsors.calculateSponsorMatchSummary).mockReturnValue({
-      sponsorMatchScore: 0,
-      sponsorMatchNames: null,
     });
   });
 

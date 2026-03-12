@@ -4,22 +4,13 @@ import type {
   FilterTab,
   JobSort,
   SalaryFilter,
-  SponsorFilter,
 } from "./constants";
 import { compareJobs, parseSalaryBounds } from "./utils";
-
-const getSponsorCategory = (score: number | null): SponsorFilter => {
-  if (score == null) return "unknown";
-  if (score >= 95) return "confirmed";
-  if (score >= 80) return "potential";
-  return "not_found";
-};
 
 export const useFilteredJobs = (
   jobs: JobListItem[],
   activeTab: FilterTab,
   sourceFilter: JobSource | "all",
-  sponsorFilter: SponsorFilter,
   salaryFilter: SalaryFilter,
   sort: JobSort,
 ) =>
@@ -42,12 +33,6 @@ export const useFilteredJobs = (
 
     if (sourceFilter !== "all") {
       filtered = filtered.filter((job) => job.source === sourceFilter);
-    }
-
-    if (sponsorFilter !== "all") {
-      filtered = filtered.filter(
-        (job) => getSponsorCategory(job.sponsorMatchScore) === sponsorFilter,
-      );
     }
 
     const hasMin =
@@ -89,4 +74,4 @@ export const useFilteredJobs = (
     }
 
     return [...filtered].sort((a, b) => compareJobs(a, b, sort));
-  }, [jobs, activeTab, sourceFilter, sponsorFilter, salaryFilter, sort]);
+  }, [jobs, activeTab, sourceFilter, salaryFilter, sort]);

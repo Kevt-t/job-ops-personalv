@@ -41,14 +41,6 @@ describe("location-support", () => {
   });
 
   it("applies source compatibility rules by country", () => {
-    expect(isSourceAllowedForCountry("gradcracker", "united kingdom")).toBe(
-      true,
-    );
-    expect(isSourceAllowedForCountry("ukvisajobs", "uk")).toBe(true);
-    expect(isSourceAllowedForCountry("gradcracker", "united states")).toBe(
-      false,
-    );
-    expect(isSourceAllowedForCountry("ukvisajobs", "worldwide")).toBe(false);
     expect(isSourceAllowedForCountry("indeed", "united states")).toBe(true);
     expect(isSourceAllowedForCountry("linkedin", "worldwide")).toBe(true);
     expect(isSourceAllowedForCountry("glassdoor", "united states")).toBe(true);
@@ -60,14 +52,7 @@ describe("location-support", () => {
   it("filters incompatible sources while preserving compatible order", () => {
     expect(
       getCompatibleSourcesForCountry(
-        [
-          "gradcracker",
-          "indeed",
-          "glassdoor",
-          "ukvisajobs",
-          "adzuna",
-          "linkedin",
-        ],
+        ["indeed", "glassdoor", "adzuna", "linkedin"],
         "united states",
       ),
     ).toEqual(["indeed", "glassdoor", "adzuna", "linkedin"]);

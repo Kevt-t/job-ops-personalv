@@ -12,15 +12,12 @@ import { Toaster } from "@/components/ui/sonner";
 import { BasicAuthPrompt } from "./components/BasicAuthPrompt";
 import { OnboardingGate } from "./components/OnboardingGate";
 import { useDemoInfo } from "./hooks/useDemoInfo";
-import { GmailOauthCallbackPage } from "./pages/GmailOauthCallbackPage";
 import { HomePage } from "./pages/HomePage";
 import { InProgressBoardPage } from "./pages/InProgressBoardPage";
 import { JobPage } from "./pages/JobPage";
 import { OrchestratorPage } from "./pages/OrchestratorPage";
 import { SettingsPage } from "./pages/SettingsPage";
 import { TracerLinksPage } from "./pages/TracerLinksPage";
-import { TrackingInboxPage } from "./pages/TrackingInboxPage";
-import { VisaSponsorsPage } from "./pages/VisaSponsorsPage";
 
 /** Backwards-compatibility redirects: old URL paths -> new URL paths */
 const REDIRECTS: Array<{ from: string; to: string }> = [
@@ -131,10 +128,6 @@ export const App: React.FC = () => {
 
                 {/* Application routes */}
                 <Route path="/overview" element={<HomePage />} />
-                <Route
-                  path="/oauth/gmail/callback"
-                  element={<GmailOauthCallbackPage />}
-                />
                 <Route path="/job/:id" element={<JobPage />} />
                 <Route
                   path="/applications/in-progress"
@@ -142,8 +135,6 @@ export const App: React.FC = () => {
                 />
                 <Route path="/settings" element={<SettingsPage />} />
                 <Route path="/tracer-links" element={<TracerLinksPage />} />
-                <Route path="/visa-sponsors" element={<VisaSponsorsPage />} />
-                <Route path="/tracking-inbox" element={<TrackingInboxPage />} />
                 <Route path="/jobs/:tab" element={<OrchestratorPage />} />
                 <Route
                   path="/jobs/:tab/:jobId"

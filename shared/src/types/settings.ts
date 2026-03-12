@@ -149,16 +149,13 @@ export interface AppSettings {
   pipelineWebhookUrl: Resolved<string>;
   jobCompleteWebhookUrl: Resolved<string>;
   resumeProjects: Resolved<ResumeProjectsSettings>;
-  ukvisajobsMaxJobs: Resolved<number>;
   adzunaMaxJobsPerTerm: Resolved<number>;
-  gradcrackerMaxJobsPerTerm: Resolved<number>;
   searchTerms: Resolved<string[]>;
   blockedCompanyKeywords: Resolved<string[]>;
   scoringInstructions: Resolved<string>;
   searchCities: Resolved<string>;
   jobspyResultsWanted: Resolved<number>;
   jobspyCountryIndeed: Resolved<string>;
-  showSponsorInfo: Resolved<boolean>;
   chatStyleTone: Resolved<string>;
   chatStyleFormality: Resolved<string>;
   chatStyleConstraints: Resolved<string>;
@@ -183,7 +180,6 @@ export interface AppSettings {
   rxresumeBaseResumeIdV4: string | null;
   rxresumeBaseResumeIdV5: string | null;
   rxresumeEmail: string | null;
-  ukvisajobsEmail: string | null;
   adzunaAppId: string | null;
   basicAuthUser: string | null;
 
@@ -191,7 +187,6 @@ export interface AppSettings {
   llmApiKeyHint: string | null;
   rxresumeApiKeyHint: string | null;
   rxresumePasswordHint: string | null;
-  ukvisajobsPasswordHint: string | null;
   adzunaAppKeyHint: string | null;
   basicAuthPasswordHint: string | null;
   webhookSecretHint: string | null;

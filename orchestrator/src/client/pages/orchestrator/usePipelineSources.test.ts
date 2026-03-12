@@ -57,43 +57,43 @@ describe("usePipelineSources", () => {
   it("filters stored sources to enabled sources", () => {
     ensureStorage().setItem(
       PIPELINE_SOURCES_STORAGE_KEY,
-      JSON.stringify(["gradcracker", "ukvisajobs"]),
+      JSON.stringify(["jobspy", "indeed"]),
     );
 
-    const enabledSources = ["gradcracker"] as const;
+    const enabledSources = ["jobspy"] as const;
 
     const { result } = renderHook(() => usePipelineSources(enabledSources));
 
-    expect(result.current.pipelineSources).toEqual(["gradcracker"]);
+    expect(result.current.pipelineSources).toEqual(["jobspy"]);
   });
 
   it("falls back to the first enabled source", () => {
     ensureStorage().setItem(
       PIPELINE_SOURCES_STORAGE_KEY,
-      JSON.stringify(["ukvisajobs"]),
+      JSON.stringify(["indeed"]),
     );
 
-    const enabledSources = ["gradcracker", "linkedin"] as const;
+    const enabledSources = ["jobspy", "linkedin"] as const;
 
     const { result } = renderHook(() => usePipelineSources(enabledSources));
 
-    expect(result.current.pipelineSources).toEqual(["gradcracker"]);
+    expect(result.current.pipelineSources).toEqual(["jobspy"]);
   });
 
   it("ignores toggles for disabled sources", () => {
     ensureStorage().setItem(
       PIPELINE_SOURCES_STORAGE_KEY,
-      JSON.stringify(["gradcracker"]),
+      JSON.stringify(["jobspy"]),
     );
 
-    const enabledSources = ["gradcracker"] as const;
+    const enabledSources = ["jobspy"] as const;
 
     const { result } = renderHook(() => usePipelineSources(enabledSources));
 
     act(() => {
-      result.current.toggleSource("ukvisajobs", true);
+      result.current.toggleSource("indeed", true);
     });
 
-    expect(result.current.pipelineSources).toEqual(["gradcracker"]);
+    expect(result.current.pipelineSources).toEqual(["jobspy"]);
   });
 });

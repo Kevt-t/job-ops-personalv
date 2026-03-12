@@ -23,7 +23,7 @@ Self-hosted. Docker-based.
 <summary>
 Pipeline Demo
 </summary>
-  
+
   https://github.com/user-attachments/assets/5b9157a9-13b0-4ec6-9bd2-a39dbc2b11c5
 </details>
 
@@ -32,7 +32,7 @@ Pipeline Demo
 <summary>
 Apply & Track
 </summary>
-  
+
   https://github.com/user-attachments/assets/06e5e782-47f5-42d0-8b28-b89102d7ea1b
 </details>
 
@@ -68,7 +68,7 @@ docker compose up -d
 
 ## Why JobOps?
 
-* **Universal Scraping**: Supports **LinkedIn, Indeed, Glassdoor, Adzuna, Hiring Café, Gradcracker, UK Visa Jobs**.
+* **Universal Scraping**: Supports **LinkedIn, Indeed, Glassdoor, Adzuna, Hiring Café**.
 * **AI Scoring**: Ranks jobs by fit against *your* profile using your preferred LLM (OpenAI, OpenRouter, `openai-compatible` endpoints such as LM Studio/Ollama, Gemini).
 * **Auto-Tailoring**: Generates custom resumes (PDFs) for every application using RxResume v4.
 * **Email Tracking**: Connect Gmail to auto-detect interviews, offers, and rejections.
@@ -91,8 +91,6 @@ docker compose up -d
 | **Glassdoor** | Global / General |
 | **Adzuna** | Multi-country API source |
 | **Hiring Café** | Global / General |
-| **Gradcracker** | STEM / Grads (UK) |
-| **UK Visa Jobs** | Sponsorship (UK) |
 
 *(More extractors can be added via TypeScript - see [extractors documentation](https://jobops.dakheera47.com/docs/extractors/overview))*
 

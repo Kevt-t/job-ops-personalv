@@ -186,7 +186,7 @@ export const ScoringSettingsSection: React.FC<ScoringSettingsSectionProps> = ({
                     id="scoringInstructions"
                     value={field.value ?? scoringInstructions.default}
                     onChange={(event) => field.onChange(event.target.value)}
-                    placeholder="Example: Open to relocating, so do not mark down for location discrepancies. Prioritize visa sponsorship and backend API work."
+                    placeholder="Example: Open to relocating, so do not mark down for location discrepancies. Prioritize backend API work."
                     disabled={isLoading || isSaving}
                     maxLength={4000}
                   />

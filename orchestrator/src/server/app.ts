@@ -54,19 +54,7 @@ export function createBasicAuthGuard() {
     return user === authUser && pass === authPass;
   }
 
-  function isPublicReadOnlyRoute(method: string, path: string): boolean {
-    const normalizedMethod = method.toUpperCase();
-    const normalizedPath = path.split("?")[0] || path;
-    if (
-      normalizedMethod === "POST" &&
-      normalizedPath === "/api/visa-sponsors/search"
-    )
-      return true;
-    return false;
-  }
-
   function requiresAuth(method: string, path: string): boolean {
-    if (isPublicReadOnlyRoute(method, path)) return false;
     if (path.startsWith("/api/tracer-links")) {
       return method.toUpperCase() !== "OPTIONS";
     }

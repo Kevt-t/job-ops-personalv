@@ -56,7 +56,7 @@ Use it to quickly answer:
 
 ### Response Rate by Source
 
-The **Response Rate by Source** chart shows, for each job board (LinkedIn, Indeed, Gradcracker, etc.), what percentage of your applications received a non-rejection response.
+The **Response Rate by Source** chart shows, for each job board (LinkedIn, Indeed, etc.), what percentage of your applications received a non-rejection response.
 
 **What counts as a response:** the application reached at least one of these stages — recruiter screen, assessment, hiring manager screen, technical interview, onsite, or offer. Ghosted applications (no stage events) and rejected outcomes are both excluded from the numerator.
 

@@ -26,10 +26,6 @@ vi.mock("./components/OnboardingGate", () => ({
   OnboardingGate: () => null,
 }));
 
-vi.mock("./pages/GmailOauthCallbackPage", () => ({
-  GmailOauthCallbackPage: () => null,
-}));
-
 vi.mock("./pages/HomePage", () => ({
   HomePage: () => <div>overview</div>,
 }));
@@ -48,14 +44,6 @@ vi.mock("./pages/OrchestratorPage", () => ({
 
 vi.mock("./pages/SettingsPage", () => ({
   SettingsPage: () => null,
-}));
-
-vi.mock("./pages/TrackingInboxPage", () => ({
-  TrackingInboxPage: () => null,
-}));
-
-vi.mock("./pages/VisaSponsorsPage", () => ({
-  VisaSponsorsPage: () => null,
 }));
 
 describe("App demo banner", () => {

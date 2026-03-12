@@ -191,8 +191,6 @@ export function usePipelineControls(
       await api.updateSettings({
         searchTerms: values.searchTerms,
         jobspyResultsWanted: limits.jobspyResultsWanted,
-        gradcrackerMaxJobsPerTerm: limits.gradcrackerMaxJobsPerTerm,
-        ukvisajobsMaxJobs: limits.ukvisajobsMaxJobs,
         adzunaMaxJobsPerTerm: limits.adzunaMaxJobsPerTerm,
         jobspyCountryIndeed: values.country,
         searchCities,
