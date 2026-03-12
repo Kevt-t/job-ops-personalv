@@ -20,11 +20,6 @@ npm --workspace docs-site run build
 - Confirm Express is serving docs static mount before app SPA fallback.
 - Confirm docs base URL is `/docs/` in `docs-site/docusaurus.config.ts`.
 
-## Gmail OAuth callback fails
-
-- Verify `GMAIL_OAUTH_CLIENT_ID`, `GMAIL_OAUTH_CLIENT_SECRET`.
-- Ensure authorized redirect URI exactly matches deployment callback URL.
-
 ## No job scoring or AI inference
 
 - Validate `LLM_API_KEY` and provider settings.

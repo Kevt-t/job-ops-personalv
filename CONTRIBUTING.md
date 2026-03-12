@@ -24,7 +24,7 @@ Use the path that matches your change:
 
 ## Local Setup (Minimal)
 
-For full end-user setup, environment variables, OAuth, and deployment details, use the [Self-Hosting Guide](https://jobops.dakheera47.com/docs/getting-started/self-hosting) and [Gmail OAuth Setup](https://jobops.dakheera47.com/docs/getting-started/gmail-oauth-setup).
+For full end-user setup, environment variables, and deployment details, use the [Self-Hosting Guide](https://jobops.dakheera47.com/docs/getting-started/self-hosting).
 
 Contributor baseline from repo root:
 
@@ -107,7 +107,6 @@ Before editing server routes/services, read [`AGENTS.md`](./AGENTS.md) for repos
 
 - [Documentation Home](https://jobops.dakheera47.com/docs/)
 - [Self-Hosting Guide](https://jobops.dakheera47.com/docs/getting-started/self-hosting)
-- [Gmail OAuth Setup](https://jobops.dakheera47.com/docs/getting-started/gmail-oauth-setup)
 - [Documentation Style Guide](https://jobops.dakheera47.com/docs/next/reference/documentation-style-guide)
 - [FAQ (includes where to edit docs)](https://jobops.dakheera47.com/docs/next/reference/faq)
 - [Add an Extractor Workflow](https://jobops.dakheera47.com/docs/next/workflows/add-an-extractor)

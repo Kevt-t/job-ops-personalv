@@ -66,33 +66,6 @@ type ProductEventMap = {
     result_group: string;
     query_length_bucket: string;
   };
-  tracking_inbox_connect_started: {
-    provider: string;
-    account_key_is_default: boolean;
-  };
-  tracking_inbox_connect_completed: {
-    provider: string;
-    result: "success" | "error" | "cancelled" | "timeout";
-  };
-  tracking_inbox_sync_started: {
-    provider: string;
-    max_messages: number;
-    search_days: number;
-  };
-  tracking_inbox_sync_completed: {
-    provider: string;
-    result: "success" | "error";
-  };
-  tracking_inbox_disconnect_confirmed: {
-    provider: string;
-  };
-  tracking_inbox_review_action_completed: {
-    action: "approve" | "deny";
-    context: "main_inbox" | "run_modal";
-    item_count: number;
-    provider: string;
-    result: "success" | "error";
-  };
   tracer_filters_applied: {
     include_bots: boolean;
     has_from: boolean;
