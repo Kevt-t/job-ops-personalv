@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 
 interface FloatingJobActionsBarProps {
   selectedCount: number;
+  canMutate: boolean;
   canMoveSelected: boolean;
   canSkipSelected: boolean;
   canRescoreSelected: boolean;
@@ -16,6 +17,7 @@ interface FloatingJobActionsBarProps {
 
 export const FloatingJobActionsBar: React.FC<FloatingJobActionsBarProps> = ({
   selectedCount,
+  canMutate,
   canMoveSelected,
   canSkipSelected,
   canRescoreSelected,
@@ -40,7 +42,7 @@ export const FloatingJobActionsBar: React.FC<FloatingJobActionsBarProps> = ({
               {selectedCount} selected
             </div>
             <div className="grid grid-cols-2 gap-2 sm:flex sm:flex-wrap sm:items-center">
-              {canMoveSelected && (
+              {canMutate && canMoveSelected && (
                 <Button
                   type="button"
                   size="sm"
@@ -52,7 +54,7 @@ export const FloatingJobActionsBar: React.FC<FloatingJobActionsBarProps> = ({
                   Move to Ready
                 </Button>
               )}
-              {canSkipSelected && (
+              {canMutate && canSkipSelected && (
                 <Button
                   type="button"
                   size="sm"
@@ -64,7 +66,7 @@ export const FloatingJobActionsBar: React.FC<FloatingJobActionsBarProps> = ({
                   Skip selected
                 </Button>
               )}
-              {canRescoreSelected && (
+              {canMutate && canRescoreSelected && (
                 <Button
                   type="button"
                   size="sm"

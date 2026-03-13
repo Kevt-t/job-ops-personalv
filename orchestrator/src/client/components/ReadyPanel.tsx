@@ -41,6 +41,7 @@ import {
   safeFilenamePart,
 } from "@/lib/utils";
 import * as api from "../api";
+import { useRole } from "../hooks/useRole";
 import {
   useMarkAsAppliedMutation,
   useSkipJobMutation,
@@ -85,6 +86,7 @@ export const ReadyPanel: React.FC<ReadyPanelProps> = ({
   const previousJobIdRef = useRef<string | null>(null);
   const markAsAppliedMutation = useMarkAsAppliedMutation();
   const skipJobMutation = useSkipJobMutation();
+  const { canMutate } = useRole();
 
   const { personName } = useProfile();
 
@@ -130,6 +132,7 @@ export const ReadyPanel: React.FC<ReadyPanelProps> = ({
 
   const handleUndoApplied = useCallback(
     async (jobId: string) => {
+      if (!canMutate) return;
       try {
         // Revert to ready status
         await api.updateJob(jobId, { status: "ready" });
@@ -158,12 +161,13 @@ export const ReadyPanel: React.FC<ReadyPanelProps> = ({
         toast.error(message);
       }
     },
-    [onJobUpdated, recentlyApplied],
+    [canMutate, onJobUpdated, recentlyApplied],
   );
 
   // Handle mark as applied with undo capability
   const handleMarkApplied = useCallback(async () => {
     if (!job) return;
+    if (!canMutate) return;
 
     try {
       setIsMarkingApplied(true);
@@ -212,10 +216,18 @@ export const ReadyPanel: React.FC<ReadyPanelProps> = ({
     } finally {
       setIsMarkingApplied(false);
     }
-  }, [job, markAsAppliedMutation, onJobMoved, onJobUpdated, handleUndoApplied]);
+  }, [
+    canMutate,
+    job,
+    markAsAppliedMutation,
+    onJobMoved,
+    onJobUpdated,
+    handleUndoApplied,
+  ]);
 
   const handleRegenerate = useCallback(async () => {
     if (!job) return;
+    if (!canMutate) return;
 
     try {
       setIsRegenerating(true);
@@ -239,15 +251,19 @@ export const ReadyPanel: React.FC<ReadyPanelProps> = ({
     } finally {
       setIsRegenerating(false);
     }
-  }, [job, onJobUpdated]);
+  }, [canMutate, job, onJobUpdated]);
 
   const handleRescore = useCallback(
-    () => rescoreJob(job?.id),
-    [job?.id, rescoreJob],
+    () => {
+      if (!canMutate) return;
+      return rescoreJob(job?.id);
+    },
+    [canMutate, job?.id, rescoreJob],
   );
 
   const handleSkip = useCallback(async () => {
     if (!job) return;
+    if (!canMutate) return;
 
     try {
       await skipJobMutation.mutateAsync(job.id);
@@ -270,10 +286,11 @@ export const ReadyPanel: React.FC<ReadyPanelProps> = ({
       const message = error instanceof Error ? error.message : "Failed to skip";
       toast.error(message);
     }
-  }, [job, onJobMoved, onJobUpdated, skipJobMutation]);
+  }, [canMutate, job, onJobMoved, onJobUpdated, skipJobMutation]);
 
   const handleCopyInfo = useCallback(async () => {
     if (!job) return;
+    if (!canMutate) return;
 
     try {
       await copyTextToClipboard(formatJobForWebhook(job));
@@ -311,7 +328,7 @@ export const ReadyPanel: React.FC<ReadyPanelProps> = ({
     } finally {
       setIsRegenerating(false);
     }
-  }, [job, onJobUpdated]);
+  }, [canMutate, job, onJobUpdated]);
 
   // Empty state
   if (!job) {
@@ -360,6 +377,7 @@ export const ReadyPanel: React.FC<ReadyPanelProps> = ({
           <GhostwriterDrawer
             job={job}
             triggerClassName="h-9 w-full justify-center gap-1 px-2 text-xs"
+            disabled={!canMutate}
           />
 
           {/* Download PDF - primary artifact action */}
@@ -396,7 +414,7 @@ export const ReadyPanel: React.FC<ReadyPanelProps> = ({
             onClick={handleMarkApplied}
             variant="default"
             className="h-9 w-full gap-1 px-2 text-xs"
-            disabled={isMarkingApplied}
+            disabled={!canMutate || isMarkingApplied}
           >
             {isMarkingApplied ? (
               <Loader2 className="h-3.5 w-3.5 animate-spin" />
@@ -490,18 +508,18 @@ export const ReadyPanel: React.FC<ReadyPanelProps> = ({
           </DropdownMenuTrigger>
           <DropdownMenuContent align="center" className="w-56">
             {/* Fix/Edit actions */}
-            <DropdownMenuItem onSelect={() => setMode("tailor")}>
+            <DropdownMenuItem onSelect={() => setMode("tailor")} disabled={!canMutate}>
               <Edit2 className="mr-2 h-4 w-4" />
               Edit tailoring
             </DropdownMenuItem>
-            <DropdownMenuItem onSelect={() => setIsEditDetailsOpen(true)}>
+            <DropdownMenuItem onSelect={() => setIsEditDetailsOpen(true)} disabled={!canMutate}>
               <Edit2 className="mr-2 h-4 w-4" />
               Edit details
             </DropdownMenuItem>
 
             <DropdownMenuItem
               onSelect={handleRegenerate}
-              disabled={isRegenerating}
+              disabled={!canMutate || isRegenerating}
             >
               <RefreshCcw
                 className={cn("mr-2 h-4 w-4", isRegenerating && "animate-spin")}
@@ -509,7 +527,7 @@ export const ReadyPanel: React.FC<ReadyPanelProps> = ({
               {isRegenerating ? "Regenerating..." : "Regenerate PDF"}
             </DropdownMenuItem>
 
-            <DropdownMenuItem onSelect={handleRescore} disabled={isRescoring}>
+            <DropdownMenuItem onSelect={handleRescore} disabled={!canMutate || isRescoring}>
               <RefreshCcw
                 className={cn("mr-2 h-4 w-4", isRescoring && "animate-spin")}
               />
@@ -538,6 +556,7 @@ export const ReadyPanel: React.FC<ReadyPanelProps> = ({
             {/* Destructive actions */}
             <DropdownMenuItem
               onSelect={handleSkip}
+              disabled={!canMutate}
               className="text-destructive focus:text-destructive"
             >
               <XCircle className="mr-2 h-4 w-4" />
@@ -552,6 +571,7 @@ export const ReadyPanel: React.FC<ReadyPanelProps> = ({
         onOpenChange={setIsEditDetailsOpen}
         job={job}
         onJobUpdated={onJobUpdated}
+        readOnly={!canMutate}
       />
 
       {/* ─────────────────────────────────────────────────────────────────────
@@ -571,6 +591,7 @@ export const ReadyPanel: React.FC<ReadyPanelProps> = ({
               size="sm"
               className="h-7 gap-1.5 text-xs"
               onClick={() => handleUndoApplied(recentlyApplied.jobId)}
+              disabled={!canMutate}
             >
               <Undo2 className="h-3.5 w-3.5" />
               Undo

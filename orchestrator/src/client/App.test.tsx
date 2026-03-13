@@ -3,7 +3,12 @@ import type React from "react";
 import { MemoryRouter } from "react-router-dom";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { App } from "./App";
+import { useAuth } from "./hooks/useAuth";
 import { useDemoInfo } from "./hooks/useDemoInfo";
+
+vi.mock("./hooks/useAuth", () => ({
+  useAuth: vi.fn(),
+}));
 
 vi.mock("./hooks/useDemoInfo", () => ({
   useDemoInfo: vi.fn(),
@@ -16,10 +21,6 @@ vi.mock("react-transition-group", () => ({
 
 vi.mock("@/components/ui/sonner", () => ({
   Toaster: () => null,
-}));
-
-vi.mock("./components/BasicAuthPrompt", () => ({
-  BasicAuthPrompt: () => null,
 }));
 
 vi.mock("./components/OnboardingGate", () => ({
@@ -38,18 +39,37 @@ vi.mock("./pages/JobPage", () => ({
   JobPage: () => null,
 }));
 
+vi.mock("./pages/LoginPage", () => ({
+  LoginPage: () => <div>login</div>,
+}));
+
 vi.mock("./pages/OrchestratorPage", () => ({
   OrchestratorPage: () => null,
+}));
+
+vi.mock("./pages/RegisterPage", () => ({
+  RegisterPage: () => <div>register</div>,
 }));
 
 vi.mock("./pages/SettingsPage", () => ({
   SettingsPage: () => null,
 }));
 
-describe("App demo banner", () => {
+describe("App", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     localStorage.clear();
+    vi.mocked(useAuth).mockReturnValue({
+      user: null,
+      role: null,
+      isAuthenticated: true,
+      isLoading: false,
+      needsSetup: false,
+      authRequired: false,
+      login: vi.fn(),
+      register: vi.fn(),
+      logout: vi.fn(),
+    });
   });
 
   it("shows a waitlist link in demo mode", () => {
@@ -118,5 +138,65 @@ describe("App demo banner", () => {
     expect(localStorage.getItem("jobops.demoWaitlistBannerDismissed")).toBe(
       "1",
     );
+  });
+
+  it("shows the login page when auth is required and no session exists", () => {
+    vi.mocked(useDemoInfo).mockReturnValue({
+      demoMode: false,
+      resetCadenceHours: 6,
+      lastResetAt: null,
+      nextResetAt: null,
+      baselineVersion: null,
+      baselineName: null,
+    });
+    vi.mocked(useAuth).mockReturnValue({
+      user: null,
+      role: null,
+      isAuthenticated: false,
+      isLoading: false,
+      needsSetup: false,
+      authRequired: true,
+      login: vi.fn(),
+      register: vi.fn(),
+      logout: vi.fn(),
+    });
+
+    render(
+      <MemoryRouter initialEntries={["/overview"]}>
+        <App />
+      </MemoryRouter>,
+    );
+
+    expect(screen.getByText("login")).toBeInTheDocument();
+  });
+
+  it("shows the register page when first-time setup is required", () => {
+    vi.mocked(useDemoInfo).mockReturnValue({
+      demoMode: false,
+      resetCadenceHours: 6,
+      lastResetAt: null,
+      nextResetAt: null,
+      baselineVersion: null,
+      baselineName: null,
+    });
+    vi.mocked(useAuth).mockReturnValue({
+      user: null,
+      role: null,
+      isAuthenticated: false,
+      isLoading: false,
+      needsSetup: true,
+      authRequired: true,
+      login: vi.fn(),
+      register: vi.fn(),
+      logout: vi.fn(),
+    });
+
+    render(
+      <MemoryRouter initialEntries={["/overview"]}>
+        <App />
+      </MemoryRouter>,
+    );
+
+    expect(screen.getByText("register")).toBeInTheDocument();
   });
 });

@@ -241,6 +241,38 @@ export const settings = sqliteTable("settings", {
   updatedAt: text("updated_at").notNull().default(sql`(datetime('now'))`),
 });
 
+export const users = sqliteTable(
+  "users",
+  {
+    id: text("id").primaryKey(),
+    username: text("username").notNull().unique(),
+    passwordHash: text("password_hash").notNull(),
+    role: text("role", { enum: ["user", "coach"] }).notNull(),
+    createdAt: text("created_at").notNull().default(sql`(datetime('now'))`),
+    updatedAt: text("updated_at").notNull().default(sql`(datetime('now'))`),
+  },
+  (table) => ({
+    roleIndex: index("idx_users_role").on(table.role),
+  }),
+);
+
+export const sessions = sqliteTable(
+  "sessions",
+  {
+    id: text("id").primaryKey(),
+    userId: text("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    token: text("token").notNull().unique(),
+    expiresAt: integer("expires_at", { mode: "number" }).notNull(),
+    createdAt: text("created_at").notNull().default(sql`(datetime('now'))`),
+  },
+  (table) => ({
+    userIdIndex: index("idx_sessions_user_id").on(table.userId),
+    expiresAtIndex: index("idx_sessions_expires_at").on(table.expiresAt),
+  }),
+);
+
 export type JobRow = typeof jobs.$inferSelect;
 export type NewJobRow = typeof jobs.$inferInsert;
 export type StageEventRow = typeof stageEvents.$inferSelect;
@@ -259,3 +291,7 @@ export type JobChatRunRow = typeof jobChatRuns.$inferSelect;
 export type NewJobChatRunRow = typeof jobChatRuns.$inferInsert;
 export type SettingsRow = typeof settings.$inferSelect;
 export type NewSettingsRow = typeof settings.$inferInsert;
+export type UserRow = typeof users.$inferSelect;
+export type NewUserRow = typeof users.$inferInsert;
+export type SessionRow = typeof sessions.$inferSelect;
+export type NewSessionRow = typeof sessions.$inferInsert;

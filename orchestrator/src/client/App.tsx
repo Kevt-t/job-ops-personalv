@@ -9,13 +9,15 @@ import { CSSTransition, SwitchTransition } from "react-transition-group";
 
 import { Button } from "@/components/ui/button";
 import { Toaster } from "@/components/ui/sonner";
-import { BasicAuthPrompt } from "./components/BasicAuthPrompt";
 import { OnboardingGate } from "./components/OnboardingGate";
+import { useAuth } from "./hooks/useAuth";
 import { useDemoInfo } from "./hooks/useDemoInfo";
 import { HomePage } from "./pages/HomePage";
 import { InProgressBoardPage } from "./pages/InProgressBoardPage";
 import { JobPage } from "./pages/JobPage";
+import { LoginPage } from "./pages/LoginPage";
 import { OrchestratorPage } from "./pages/OrchestratorPage";
+import { RegisterPage } from "./pages/RegisterPage";
 import { SettingsPage } from "./pages/SettingsPage";
 
 /** Backwards-compatibility redirects: old URL paths -> new URL paths */
@@ -42,6 +44,7 @@ export const App: React.FC = () => {
   const location = useLocation();
   const nodeRef = useRef<HTMLDivElement>(null);
   const demoInfo = useDemoInfo();
+  const auth = useAuth();
   const [demoWaitlistBannerDismissed, setDemoWaitlistBannerDismissed] =
     useState(() => {
       try {
@@ -62,8 +65,7 @@ export const App: React.FC = () => {
 
   return (
     <>
-      <OnboardingGate />
-      <BasicAuthPrompt />
+      {auth.user?.role === "user" ? <OnboardingGate /> : null}
       {demoInfo?.demoMode && !demoWaitlistBannerDismissed && (
         <div className="sticky top-0 z-50 w-full border-b border-orange-400/60 bg-orange-500 px-4 py-2 text-xs text-orange-950 shadow-sm">
           <div className="mx-auto flex max-w-7xl items-center justify-center gap-3">
@@ -105,6 +107,22 @@ export const App: React.FC = () => {
           {demoInfo.resetCadenceHours} hours.
         </div>
       )}
+      {auth.user?.role === "coach" && (
+        <div className="w-full border-b border-sky-400/40 bg-sky-500/10 px-4 py-2 text-center text-xs text-sky-100">
+          Viewing as Coach (read-only)
+        </div>
+      )}
+      {auth.isLoading ? (
+        <main className="container mx-auto flex min-h-[calc(100vh-8rem)] max-w-md items-center justify-center px-4 py-10 text-sm text-muted-foreground">
+          Loading...
+        </main>
+      ) : auth.authRequired && !auth.isAuthenticated ? (
+        auth.needsSetup ? (
+          <RegisterPage />
+        ) : (
+          <LoginPage />
+        )
+      ) : (
       <div>
         <SwitchTransition mode="out-in">
           <CSSTransition
@@ -143,6 +161,7 @@ export const App: React.FC = () => {
           </CSSTransition>
         </SwitchTransition>
       </div>
+      )}
 
       <Toaster position="bottom-right" richColors closeButton />
     </>

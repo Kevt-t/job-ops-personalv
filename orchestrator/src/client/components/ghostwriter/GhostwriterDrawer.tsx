@@ -17,11 +17,13 @@ import { GhostwriterPanel } from "./GhostwriterPanel";
 type GhostwriterDrawerProps = {
   job: Job | null;
   triggerClassName?: string;
+  disabled?: boolean;
 };
 
 export const GhostwriterDrawer: React.FC<GhostwriterDrawerProps> = ({
   job,
   triggerClassName,
+  disabled = false,
 }) => {
   const [open, setOpen] = useState(false);
 
@@ -32,7 +34,7 @@ export const GhostwriterDrawer: React.FC<GhostwriterDrawerProps> = ({
           size="sm"
           variant="outline"
           className={cn("h-8 gap-1.5 text-xs", triggerClassName)}
-          disabled={!job}
+          disabled={!job || disabled}
         >
           <PanelRightOpen className="h-3.5 w-3.5" />
           Ghostwriter

@@ -4,6 +4,8 @@ import { MemoryRouter } from "react-router-dom";
 import { toast } from "sonner";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import * as api from "../api";
+import { useAuth } from "@client/hooks/useAuth";
+import { useRole } from "../hooks/useRole";
 import { renderWithQueryClient } from "../test/renderWithQueryClient";
 import { SettingsPage } from "./SettingsPage";
 
@@ -16,11 +18,23 @@ vi.mock("../api", () => ({
   getSettings: vi.fn(),
   updateSettings: vi.fn(),
   validateRxresume: vi.fn(),
+  getRxResumeProjects: vi.fn(),
+  authListCoaches: vi.fn().mockResolvedValue({ coaches: [] }),
+  authCreateCoach: vi.fn(),
+  authDeleteCoach: vi.fn(),
   clearDatabase: vi.fn(),
   deleteJobsByStatus: vi.fn(),
   getBackups: vi.fn().mockResolvedValue({ backups: [], nextScheduled: null }),
   createManualBackup: vi.fn(),
   deleteBackup: vi.fn(),
+}));
+
+vi.mock("../hooks/useRole", () => ({
+  useRole: vi.fn(),
+}));
+
+vi.mock("@client/hooks/useAuth", () => ({
+  useAuth: vi.fn(),
 }));
 
 vi.mock("sonner", () => ({
@@ -73,6 +87,22 @@ const openWritingStyleSection = async () => {
 describe("SettingsPage", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    vi.mocked(useAuth).mockReturnValue({
+      user: { id: "owner-id", username: "owner", role: "user" },
+      role: "user",
+      isAuthenticated: true,
+      isLoading: false,
+      needsSetup: false,
+      authRequired: true,
+      login: vi.fn(),
+      register: vi.fn(),
+      logout: vi.fn(),
+    });
+    vi.mocked(useRole).mockReturnValue({
+      role: "user",
+      isCoach: false,
+      canMutate: true,
+    });
     Object.defineProperty(HTMLElement.prototype, "scrollIntoView", {
       configurable: true,
       value: vi.fn(),
@@ -130,18 +160,14 @@ describe("SettingsPage", () => {
 
     const modelInput = screen.getByLabelText(/default model/i);
     await waitFor(() => expect(modelInput).toBeEnabled());
-
-    // Change to > 200 chars
     fireEvent.change(modelInput, { target: { value: "a".repeat(201) } });
 
-    // Should see error message
     expect(
       await screen.findByText(
         /String must contain at most 200 character\(s\)/i,
       ),
     ).toBeInTheDocument();
 
-    // Save button should be disabled due to validation error (isValid will be false)
     const saveButton = screen.getByRole("button", { name: /^save$/i });
     expect(saveButton).toBeDisabled();
   });
@@ -189,7 +215,6 @@ describe("SettingsPage", () => {
     await openModelSection();
 
     const modelInput = screen.getByLabelText(/default model/i);
-    // Wait for the query to resolve and input to be enabled
     await waitFor(() => expect(modelInput).toBeEnabled());
 
     fireEvent.change(modelInput, { target: { value: "new-model" } });
@@ -209,17 +234,8 @@ describe("SettingsPage", () => {
     ).not.toBeInTheDocument();
   });
 
-  it("allows saving when both Reactive Resume v4 and v5 credentials are present", async () => {
-    const settingsWithBothRxResumeAuth = createAppSettings({
-      rxresumeEmail: "resume@example.com",
-      rxresumePasswordHint: "pass",
-      rxresumeApiKeyHint: "api_",
-    });
-    vi.mocked(api.getSettings).mockResolvedValue(settingsWithBothRxResumeAuth);
-    vi.mocked(api.updateSettings).mockResolvedValue(
-      settingsWithBothRxResumeAuth,
-    );
-
+  it("does not show the old basic auth controls", async () => {
+    vi.mocked(api.getSettings).mockResolvedValue(baseSettings);
     renderPage();
 
     const envTrigger = await screen.findByRole("button", {
@@ -227,18 +243,18 @@ describe("SettingsPage", () => {
     });
     fireEvent.click(envTrigger);
 
-    const authCheckbox = screen.getByLabelText(/enable basic authentication/i);
-    fireEvent.click(authCheckbox);
+    expect(
+      screen.queryByLabelText(/enable basic authentication/i),
+    ).not.toBeInTheDocument();
+  });
 
-    const saveButton = screen.getByRole("button", { name: /^save$/i });
-    await waitFor(() => expect(saveButton).toBeEnabled());
-    fireEvent.click(saveButton);
+  it("shows coach account management for the owner role", async () => {
+    vi.mocked(api.getSettings).mockResolvedValue(baseSettings);
+    renderPage();
 
-    await waitFor(() => expect(api.updateSettings).toHaveBeenCalled());
-    expect(toast.error).not.toHaveBeenCalledWith(
-      "Choose one Reactive Resume auth method",
-      expect.anything(),
-    );
+    expect(
+      await screen.findByRole("button", { name: /coach accounts/i }),
+    ).toBeInTheDocument();
   });
 
   it("saves the writing language mode through the settings page", async () => {
@@ -276,56 +292,25 @@ describe("SettingsPage", () => {
     );
   });
 
-  it("enables save button when basic auth toggle is changed", async () => {
+  it("hides coach management and keeps settings read-only for coaches", async () => {
+    vi.mocked(useRole).mockReturnValue({
+      role: "coach",
+      isCoach: true,
+      canMutate: false,
+    });
     vi.mocked(api.getSettings).mockResolvedValue(baseSettings);
-    renderPage();
-    const saveButton = screen.getByRole("button", { name: /^save$/i });
-
-    const envTrigger = await screen.findByRole("button", {
-      name: /environment & accounts/i,
-    });
-    fireEvent.click(envTrigger);
-    const authCheckbox = screen.getByLabelText(/enable basic authentication/i);
-    fireEvent.click(authCheckbox);
-    expect(saveButton).toBeEnabled();
-  });
-
-  it("wipes basic auth credentials when toggle is disabled and saved", async () => {
-    // Initial state: Basic Auth is active
-    const activeSettings = {
-      ...baseSettings,
-      basicAuthActive: true,
-      basicAuthUser: "admin",
-      basicAuthPasswordHint: "pass",
-    };
-    vi.mocked(api.getSettings).mockResolvedValue(activeSettings);
-    vi.mocked(api.updateSettings).mockResolvedValue(baseSettings);
 
     renderPage();
+    await openModelSection();
 
-    const envTrigger = await screen.findByRole("button", {
-      name: /environment & accounts/i,
-    });
-    fireEvent.click(envTrigger);
-
-    const authCheckbox = screen.getByLabelText(/enable basic authentication/i);
-    expect(authCheckbox).toBeChecked();
-
-    // Disable it
-    fireEvent.click(authCheckbox);
-    expect(authCheckbox).not.toBeChecked();
+    const modelInput = screen.getByLabelText(/default model/i);
+    await waitFor(() => expect(modelInput).toBeDisabled());
+    expect(
+      screen.queryByRole("button", { name: /coach accounts/i }),
+    ).not.toBeInTheDocument();
 
     const saveButton = screen.getByRole("button", { name: /^save$/i });
-    expect(saveButton).toBeEnabled();
-    fireEvent.click(saveButton);
-
-    await waitFor(() => expect(api.updateSettings).toHaveBeenCalled());
-    expect(api.updateSettings).toHaveBeenCalledWith(
-      expect.objectContaining({
-        basicAuthUser: null,
-        basicAuthPassword: null,
-      }),
-    );
+    expect(saveButton).toBeDisabled();
   });
 
   it("saves blocked company keywords from scoring settings", async () => {

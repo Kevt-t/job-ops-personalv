@@ -1,6 +1,12 @@
 import type { JobStatus } from "@shared/types";
 
 export const queryKeys = {
+  auth: {
+    all: ["auth"] as const,
+    me: () => [...queryKeys.auth.all, "me"] as const,
+    status: () => [...queryKeys.auth.all, "status"] as const,
+    coaches: () => [...queryKeys.auth.all, "coaches"] as const,
+  },
   settings: {
     all: ["settings"] as const,
     current: () => [...queryKeys.settings.all, "current"] as const,

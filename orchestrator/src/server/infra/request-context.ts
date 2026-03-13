@@ -4,6 +4,9 @@ export type RequestContext = {
   requestId: string;
   pipelineRunId?: string;
   jobId?: string;
+  userId?: string;
+  username?: string;
+  userRole?: string;
 };
 
 const storage = new AsyncLocalStorage<RequestContext>();

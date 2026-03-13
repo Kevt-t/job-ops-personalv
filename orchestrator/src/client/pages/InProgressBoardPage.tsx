@@ -11,6 +11,7 @@ import { ArrowDownAZ, Columns3, ExternalLink, Plus } from "lucide-react";
 import React from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { toast } from "sonner";
+import { useRole } from "@/client/hooks/useRole";
 import { useQueryErrorToast } from "@/client/hooks/useQueryErrorToast";
 import { queryKeys } from "@/client/lib/queryKeys";
 import { Badge } from "@/components/ui/badge";
@@ -81,6 +82,7 @@ const resolveCurrentStage = (
 export const InProgressBoardPage: React.FC = () => {
   const queryClient = useQueryClient();
   const navigate = useNavigate();
+  const { canMutate } = useRole();
 
   const [dragging, setDragging] = React.useState<{
     jobId: string;
@@ -176,6 +178,7 @@ export const InProgressBoardPage: React.FC = () => {
 
   const handleDropToStage = React.useCallback(
     async (toStage: ApplicationStage) => {
+      if (!canMutate) return;
       if (!dragging || dragging.fromStage === toStage) {
         setDropTargetStage(null);
         return;
@@ -219,7 +222,7 @@ export const InProgressBoardPage: React.FC = () => {
         setDropTargetStage(null);
       }
     },
-    [dragging, queryClient, transitionMutation],
+    [canMutate, dragging, queryClient, transitionMutation],
   );
 
   return (
@@ -250,6 +253,7 @@ export const InProgressBoardPage: React.FC = () => {
               size="sm"
               className="h-8 gap-1.5 text-xs"
               onClick={() => navigate("/jobs/ready")}
+              disabled={!canMutate}
             >
               <Plus className="h-3.5 w-3.5" />
               Add
@@ -272,11 +276,13 @@ export const InProgressBoardPage: React.FC = () => {
                     key={stage}
                     aria-label={`${STAGE_LABELS[stage]} lane`}
                     onDragOver={(event) => {
+                      if (!canMutate) return;
                       event.preventDefault();
                       if (!dragging || dragging.fromStage === stage) return;
                       setDropTargetStage(stage);
                     }}
                     onDrop={(event) => {
+                      if (!canMutate) return;
                       event.preventDefault();
                       void handleDropToStage(stage);
                     }}
@@ -317,8 +323,9 @@ export const InProgressBoardPage: React.FC = () => {
                           <Link
                             key={job.id}
                             to={`/job/${job.id}`}
-                            draggable={movingJobId !== job.id}
+                            draggable={canMutate && movingJobId !== job.id}
                             onDragStart={(event) => {
+                              if (!canMutate) return;
                               setDragging({ jobId: job.id, fromStage: stage });
                               event.dataTransfer.effectAllowed = "move";
                             }}

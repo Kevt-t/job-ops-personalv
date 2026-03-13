@@ -26,8 +26,6 @@ describe.sequential("Demo mode API behavior", () => {
     const { server, baseUrl, closeDb, tempDir } = await startServer({
       env: {
         DEMO_MODE: "true",
-        BASIC_AUTH_USER: "",
-        BASIC_AUTH_PASSWORD: "",
       },
     });
     try {
@@ -48,8 +46,6 @@ describe.sequential("Demo mode API behavior", () => {
     const { server, baseUrl, closeDb, tempDir } = await startServer({
       env: {
         DEMO_MODE: "true",
-        BASIC_AUTH_USER: "",
-        BASIC_AUTH_PASSWORD: "",
       },
     });
     try {
@@ -72,8 +68,6 @@ describe.sequential("Demo mode API behavior", () => {
     const { server, baseUrl, closeDb, tempDir } = await startServer({
       env: {
         DEMO_MODE: "true",
-        BASIC_AUTH_USER: "",
-        BASIC_AUTH_PASSWORD: "",
       },
     });
     try {

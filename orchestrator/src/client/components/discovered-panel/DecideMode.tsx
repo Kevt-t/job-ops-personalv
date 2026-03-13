@@ -31,6 +31,7 @@ interface DecideModeProps {
   onRescore: () => void;
   isRescoring: boolean;
   onEditDetails: () => void;
+  canMutate: boolean;
 }
 
 export const DecideMode: React.FC<DecideModeProps> = ({
@@ -41,6 +42,7 @@ export const DecideMode: React.FC<DecideModeProps> = ({
   onRescore,
   isRescoring,
   onEditDetails,
+  canMutate,
 }) => {
   const [showDescription, setShowDescription] = useState(false);
   const jobLink = job.applicationLink || job.jobUrl;
@@ -60,7 +62,7 @@ export const DecideMode: React.FC<DecideModeProps> = ({
             variant="outline"
             size="default"
             onClick={onSkip}
-            disabled={isSkipping}
+            disabled={!canMutate || isSkipping}
             className="flex-1 h-11 text-sm text-muted-foreground hover:text-rose-500 hover:border-rose-500/30 hover:bg-rose-500/5 sm:h-10 sm:text-xs"
           >
             {isSkipping ? (
@@ -74,6 +76,7 @@ export const DecideMode: React.FC<DecideModeProps> = ({
           <Button
             size="default"
             onClick={onTailor}
+            disabled={!canMutate}
             className="flex-1 h-11 text-sm bg-primary/90 hover:bg-primary sm:h-10 sm:text-xs shadow-sm"
           >
             <Sparkles className="mr-2 h-4 w-4" />
@@ -117,11 +120,11 @@ export const DecideMode: React.FC<DecideModeProps> = ({
             </Button>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="center" className="w-56">
-            <DropdownMenuItem onSelect={onEditDetails}>
+            <DropdownMenuItem onSelect={onEditDetails} disabled={!canMutate}>
               <Edit2 className="mr-2 h-4 w-4" />
               Edit details
             </DropdownMenuItem>
-            <DropdownMenuItem onSelect={onRescore} disabled={isRescoring}>
+            <DropdownMenuItem onSelect={onRescore} disabled={!canMutate || isRescoring}>
               <RefreshCcw
                 className={
                   isRescoring ? "mr-2 h-4 w-4 animate-spin" : "mr-2 h-4 w-4"

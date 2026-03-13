@@ -57,14 +57,14 @@ describe("usePipelineSources", () => {
   it("filters stored sources to enabled sources", () => {
     ensureStorage().setItem(
       PIPELINE_SOURCES_STORAGE_KEY,
-      JSON.stringify(["jobspy", "indeed"]),
+      JSON.stringify(["linkedin", "indeed"]),
     );
 
-    const enabledSources = ["jobspy"] as const;
+    const enabledSources = ["linkedin"] as const;
 
     const { result } = renderHook(() => usePipelineSources(enabledSources));
 
-    expect(result.current.pipelineSources).toEqual(["jobspy"]);
+    expect(result.current.pipelineSources).toEqual(["linkedin"]);
   });
 
   it("falls back to the first enabled source", () => {
@@ -73,20 +73,20 @@ describe("usePipelineSources", () => {
       JSON.stringify(["indeed"]),
     );
 
-    const enabledSources = ["jobspy", "linkedin"] as const;
+    const enabledSources = ["indeed", "linkedin"] as const;
 
     const { result } = renderHook(() => usePipelineSources(enabledSources));
 
-    expect(result.current.pipelineSources).toEqual(["jobspy"]);
+    expect(result.current.pipelineSources).toEqual(["indeed"]);
   });
 
   it("ignores toggles for disabled sources", () => {
     ensureStorage().setItem(
       PIPELINE_SOURCES_STORAGE_KEY,
-      JSON.stringify(["jobspy"]),
+      JSON.stringify(["linkedin"]),
     );
 
-    const enabledSources = ["jobspy"] as const;
+    const enabledSources = ["linkedin"] as const;
 
     const { result } = renderHook(() => usePipelineSources(enabledSources));
 
@@ -94,6 +94,6 @@ describe("usePipelineSources", () => {
       result.current.toggleSource("indeed", true);
     });
 
-    expect(result.current.pipelineSources).toEqual(["jobspy"]);
+    expect(result.current.pipelineSources).toEqual(["linkedin"]);
   });
 });

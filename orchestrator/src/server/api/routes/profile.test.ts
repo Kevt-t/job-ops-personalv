@@ -101,8 +101,6 @@ describe.sequential("Profile API routes", () => {
       const demoServer = await startServer({
         env: {
           DEMO_MODE: "true",
-          BASIC_AUTH_USER: "",
-          BASIC_AUTH_PASSWORD: "",
         },
       });
       try {
@@ -218,6 +216,6 @@ describe.sequential("Profile API routes", () => {
     });
   });
 
-  // Note: POST /api/profile/refresh tests skipped because basic auth blocks POST in test environment
+  // Note: POST /api/profile/refresh tests are covered separately in profile service tests.
   // The endpoint is tested indirectly through the profile service tests
 });

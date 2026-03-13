@@ -79,12 +79,5 @@ export async function getEnvSettingsData(
     }
   }
 
-  const basicAuthUser =
-    activeOverrides.basicAuthUser ?? process.env.BASIC_AUTH_USER;
-  const basicAuthPassword =
-    activeOverrides.basicAuthPassword ?? process.env.BASIC_AUTH_PASSWORD;
-
-  values.basicAuthActive = Boolean(basicAuthUser && basicAuthPassword);
-
   return values;
 }

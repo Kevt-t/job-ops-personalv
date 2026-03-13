@@ -7,14 +7,8 @@ import { EnvironmentSettingsSection } from "./EnvironmentSettingsSection";
 const EnvironmentSettingsHarness = () => {
   const methods = useForm<UpdateSettingsInput>({
     defaultValues: {
-      rxresumeEmail: "resume@example.com",
-      basicAuthUser: "admin",
-      rxresumePassword: "",
       adzunaAppId: "adzuna-id",
       adzunaAppKey: "",
-      basicAuthPassword: "",
-      webhookSecret: "",
-      enableBasicAuth: true,
     },
   });
 
@@ -24,17 +18,14 @@ const EnvironmentSettingsHarness = () => {
         <EnvironmentSettingsSection
           values={{
             readable: {
-              rxresumeEmail: "resume@example.com",
+              rxresumeEmail: "",
               adzunaAppId: "adzuna-id",
-              basicAuthUser: "admin",
             },
             private: {
               rxresumePasswordHint: null,
               adzunaAppKeyHint: "adzu",
-              basicAuthPasswordHint: "abcd",
-              webhookSecretHint: "sec-",
+              webhookSecretHint: null,
             },
-            basicAuthActive: true,
           }}
           isLoading={false}
           isSaving={false}
@@ -45,21 +36,16 @@ const EnvironmentSettingsHarness = () => {
 };
 
 describe("EnvironmentSettingsSection", () => {
-  it("renders values grouped logically and masks private secrets with hints", () => {
+  it("renders service account fields and hides removed auth controls", () => {
     render(<EnvironmentSettingsHarness />);
 
     expect(screen.getByDisplayValue("adzuna-id")).toBeInTheDocument();
-
     expect(screen.getByText(/adzu\*{8}/)).toBeInTheDocument();
-    expect(screen.getByText(/abcd\*{8}/)).toBeInTheDocument();
-
-    // Basic Auth
-    expect(screen.getByLabelText("Enable basic authentication")).toBeChecked();
-    expect(screen.getByDisplayValue("admin")).toBeInTheDocument();
-
-    // Sections
     expect(screen.getByText("Service Accounts")).toBeInTheDocument();
-    expect(screen.getByText("Security")).toBeInTheDocument();
+    expect(
+      screen.queryByLabelText("Enable basic authentication"),
+    ).not.toBeInTheDocument();
+    expect(screen.queryByText("Security")).not.toBeInTheDocument();
     expect(screen.queryByText("RxResume")).not.toBeInTheDocument();
   });
 });

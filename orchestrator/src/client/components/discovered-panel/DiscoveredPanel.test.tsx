@@ -7,6 +7,7 @@ import type React from "react";
 import { MemoryRouter } from "react-router-dom";
 import { toast } from "sonner";
 import { beforeEach, describe, expect, it, vi } from "vitest";
+import { useRole } from "@client/hooks/useRole";
 import { DiscoveredPanel } from "./DiscoveredPanel";
 
 const render = (ui: Parameters<typeof renderWithQueryClient>[0]) =>
@@ -46,6 +47,10 @@ vi.mock("@/components/ui/dropdown-menu", () => {
 
 vi.mock("@client/hooks/useSettings", () => ({
   useSettings: () => ({}),
+}));
+
+vi.mock("@client/hooks/useRole", () => ({
+  useRole: vi.fn(),
 }));
 
 vi.mock("@client/api", () => ({
@@ -90,6 +95,11 @@ vi.mock("sonner", () => ({
 describe("DiscoveredPanel", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    vi.mocked(useRole).mockReturnValue({
+      role: "user",
+      isCoach: false,
+      canMutate: true,
+    });
   });
 
   it("re-runs the fit assessment from the menu", async () => {

@@ -181,17 +181,13 @@ export interface AppSettings {
   rxresumeBaseResumeIdV5: string | null;
   rxresumeEmail: string | null;
   adzunaAppId: string | null;
-  basicAuthUser: string | null;
 
   // Secret hints:
   llmApiKeyHint: string | null;
   rxresumeApiKeyHint: string | null;
   rxresumePasswordHint: string | null;
   adzunaAppKeyHint: string | null;
-  basicAuthPasswordHint: string | null;
   webhookSecretHint: string | null;
 
-  // Computed:
-  basicAuthActive: boolean;
   profileProjects: ResumeProjectCatalogItem[];
 }

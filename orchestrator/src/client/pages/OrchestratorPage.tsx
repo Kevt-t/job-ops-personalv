@@ -1,4 +1,5 @@
 import { useSettings } from "@client/hooks/useSettings";
+import { useRole } from "@client/hooks/useRole";
 import type React from "react";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
@@ -33,6 +34,7 @@ import {
 export const OrchestratorPage: React.FC = () => {
   const { tab, jobId } = useParams<{ tab: string; jobId?: string }>();
   const navigate = useNavigate();
+  const { canMutate } = useRole();
   const {
     searchParams,
     sourceFilter,
@@ -216,6 +218,7 @@ export const OrchestratorPage: React.FC = () => {
     isAnyModalOpen,
     isAnyModalOpenExcludingCommandBar,
     isAnyModalOpenExcludingHelp,
+    canMutate,
     activeTab,
     activeJobs,
     selectedJobId,
@@ -326,6 +329,7 @@ export const OrchestratorPage: React.FC = () => {
         isPipelineRunning={isPipelineRunning}
         isCancelling={isCancelling}
         pipelineSources={pipelineSources}
+        canMutate={canMutate}
         onOpenAutomaticRun={() => openRunMode("automatic")}
         onCancelPipeline={handleCancelPipeline}
       />
@@ -401,6 +405,7 @@ export const OrchestratorPage: React.FC = () => {
 
       <FloatingJobActionsBar
         selectedCount={selectedJobIds.size}
+        canMutate={canMutate}
         canMoveSelected={canMoveSelected}
         canSkipSelected={canSkipSelected}
         canRescoreSelected={canRescoreSelected}

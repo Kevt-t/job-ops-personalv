@@ -2,8 +2,13 @@ import { fireEvent, render, screen } from "@testing-library/react";
 import type React from "react";
 import { MemoryRouter } from "react-router-dom";
 import { describe, expect, it, vi } from "vitest";
+import { useAuth } from "@client/hooks/useAuth";
 
 import { OrchestratorHeader } from "./OrchestratorHeader";
+
+vi.mock("@client/hooks/useAuth", () => ({
+  useAuth: vi.fn(),
+}));
 
 vi.mock("@/components/ui/sheet", () => ({
   Sheet: ({ children }: { children: React.ReactNode }) => <div>{children}</div>,
@@ -29,7 +34,8 @@ const renderHeader = (
     onNavOpenChange: vi.fn(),
     isPipelineRunning: false,
     isCancelling: false,
-    pipelineSources: ["jobspy"],
+    pipelineSources: ["indeed"],
+    canMutate: true,
     onOpenAutomaticRun: vi.fn(),
     onCancelPipeline: vi.fn(),
     ...overrides,
@@ -46,6 +52,20 @@ const renderHeader = (
 };
 
 describe("OrchestratorHeader", () => {
+  beforeEach(() => {
+    vi.mocked(useAuth).mockReturnValue({
+      user: { id: "owner-id", username: "owner", role: "user" },
+      role: "user",
+      isAuthenticated: true,
+      isLoading: false,
+      needsSetup: false,
+      authRequired: true,
+      login: vi.fn(),
+      register: vi.fn(),
+      logout: vi.fn(),
+    });
+  });
+
   it("opens automatic run from the navbar button", () => {
     const { props } = renderHeader();
     fireEvent.click(screen.getByRole("button", { name: /run pipeline/i }));
@@ -63,5 +83,10 @@ describe("OrchestratorHeader", () => {
     const { props } = renderHeader({ isPipelineRunning: true });
     fireEvent.click(screen.getByRole("button", { name: /cancel run/i }));
     expect(props.onCancelPipeline).toHaveBeenCalled();
+  });
+
+  it("disables run controls for coaches", () => {
+    renderHeader({ canMutate: false });
+    expect(screen.getByRole("button", { name: /run pipeline/i })).toBeDisabled();
   });
 });

@@ -599,10 +599,32 @@ const migrations = [
      AND COALESCE((
        SELECT se.to_stage
        FROM stage_events se
-       WHERE se.application_id = jobs.id
-       ORDER BY se.occurred_at DESC, se.id DESC
-       LIMIT 1
-     ), 'applied') = 'closed'`,
+     WHERE se.application_id = jobs.id
+     ORDER BY se.occurred_at DESC, se.id DESC
+     LIMIT 1
+   ), 'applied') = 'closed'`,
+
+  `CREATE TABLE IF NOT EXISTS users (
+    id TEXT PRIMARY KEY,
+    username TEXT NOT NULL UNIQUE,
+    password_hash TEXT NOT NULL,
+    role TEXT NOT NULL CHECK(role IN ('user', 'coach')),
+    created_at TEXT NOT NULL DEFAULT (datetime('now')),
+    updated_at TEXT NOT NULL DEFAULT (datetime('now'))
+  )`,
+
+  `CREATE TABLE IF NOT EXISTS sessions (
+    id TEXT PRIMARY KEY,
+    user_id TEXT NOT NULL,
+    token TEXT NOT NULL UNIQUE,
+    expires_at INTEGER NOT NULL,
+    created_at TEXT NOT NULL DEFAULT (datetime('now')),
+    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+  )`,
+
+  `CREATE INDEX IF NOT EXISTS idx_users_role ON users(role)`,
+  `CREATE INDEX IF NOT EXISTS idx_sessions_user_id ON sessions(user_id)`,
+  `CREATE INDEX IF NOT EXISTS idx_sessions_expires_at ON sessions(expires_at)`,
 ];
 
 console.log("🔧 Running database migrations...");

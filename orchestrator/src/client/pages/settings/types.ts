@@ -32,15 +32,12 @@ export type EnvSettingsValues = {
   readable: {
     rxresumeEmail: string;
     adzunaAppId: string;
-    basicAuthUser: string;
   };
   private: {
     rxresumePasswordHint: string | null;
     adzunaAppKeyHint: string | null;
-    basicAuthPasswordHint: string | null;
     webhookSecretHint: string | null;
   };
-  basicAuthActive: boolean;
 };
 
 export type BackupValues = {

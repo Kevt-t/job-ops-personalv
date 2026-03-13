@@ -6,10 +6,8 @@ import { existsSync } from "node:fs";
 import { readFile } from "node:fs/promises";
 import { dirname, extname, join } from "node:path";
 import { fileURLToPath } from "node:url";
-import { unauthorized } from "@infra/errors";
 import {
   apiErrorHandler,
-  fail,
   legacyApiResponseShim,
   notFoundApiHandler,
   requestContextMiddleware,
@@ -20,64 +18,16 @@ import express from "express";
 import { apiRouter } from "./api/index";
 import { getDataDir } from "./config/dataDir";
 import { isDemoMode } from "./config/demo";
+import {
+  requireAuth,
+  requirePdfAuth,
+  requireWriteAccess,
+} from "./middleware/auth";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 
-export function createBasicAuthGuard() {
-  function getAuthConfig() {
-    const user = process.env.BASIC_AUTH_USER || "";
-    const pass = process.env.BASIC_AUTH_PASSWORD || "";
-    return {
-      user,
-      pass,
-      enabled: user.length > 0 && pass.length > 0,
-    };
-  }
-
-  function isAuthorized(req: express.Request): boolean {
-    const { user: authUser, pass: authPass, enabled } = getAuthConfig();
-    if (!enabled) return false;
-    const authHeader = req.headers.authorization || "";
-    if (!authHeader.startsWith("Basic ")) return false;
-    const encoded = authHeader.slice("Basic ".length).trim();
-    let decoded = "";
-    try {
-      decoded = Buffer.from(encoded, "base64").toString("utf-8");
-    } catch {
-      return false;
-    }
-    const separatorIndex = decoded.indexOf(":");
-    if (separatorIndex === -1) return false;
-    const user = decoded.slice(0, separatorIndex);
-    const pass = decoded.slice(separatorIndex + 1);
-    return user === authUser && pass === authPass;
-  }
-
-  function requiresAuth(method: string, _path: string): boolean {
-    return !["GET", "HEAD", "OPTIONS"].includes(method.toUpperCase());
-  }
-
-  const middleware = (
-    req: express.Request,
-    res: express.Response,
-    next: express.NextFunction,
-  ) => {
-    const { enabled } = getAuthConfig();
-    if (!enabled || !requiresAuth(req.method, req.path)) return next();
-    if (isAuthorized(req)) return next();
-    fail(res, unauthorized("Authentication required"));
-  };
-
-  return {
-    middleware,
-    isAuthorized,
-    basicAuthEnabled: getAuthConfig().enabled,
-  };
-}
-
 export function createApp() {
   const app = express();
-  const authGuard = createBasicAuthGuard();
 
   app.use(cors());
   app.use(requestContextMiddleware());
@@ -94,20 +44,20 @@ export function createApp() {
         path: req.path,
         status: res.statusCode,
         durationMs: duration,
+        userId: req.user?.id,
+        role: req.user?.role,
       });
     });
     next();
   });
 
-  // Optional Basic Auth for write access (read-only by default)
-  app.use(authGuard.middleware);
-
   // API routes
-  app.use("/api", apiRouter);
-  app.use(notFoundApiHandler());
+  app.use("/api", requireAuth, requireWriteAccess, apiRouter);
+  app.use("/api", notFoundApiHandler());
 
   // Serve static files for generated PDFs
   const pdfDir = join(getDataDir(), "pdfs");
+  app.use("/pdfs", requirePdfAuth);
   if (isDemoMode()) {
     const demoPdfPath = join(pdfDir, "demo.pdf");
     app.get("/pdfs/*", (_req, res) => {
