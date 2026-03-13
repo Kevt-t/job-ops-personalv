@@ -136,7 +136,7 @@ export async function simulateRescoreJob(jobId: string): Promise<Job> {
 export async function simulateApplyJob(jobId: string): Promise<Job> {
   const job = await ensureJob(jobId);
   const appliedAtDate = new Date();
-  transitionStage(
+  await transitionStage(
     job.id,
     "applied",
     Math.floor(appliedAtDate.getTime() / 1000),

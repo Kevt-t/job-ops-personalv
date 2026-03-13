@@ -1,4 +1,3 @@
-import fs from "node:fs";
 import type { Server } from "node:http";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { startServer, stopServer } from "./test-utils";
@@ -6,7 +5,7 @@ import { startServer, stopServer } from "./test-utils";
 describe.sequential("Backup API routes", () => {
   let server: Server;
   let baseUrl: string;
-  let closeDb: () => void;
+  let closeDb: () => Promise<void>;
   let tempDir: string;
 
   beforeEach(async () => {
@@ -54,21 +53,9 @@ describe.sequential("Backup API routes", () => {
       expect(body.ok).toBe(true);
       expect(body.data.type).toBe("manual");
       expect(body.data.filename).toMatch(
-        /^jobs_manual_\d{4}_\d{2}_\d{2}_\d{2}_\d{2}_\d{2}\.db$/,
+        /^jobs_manual_\d{4}_\d{2}_\d{2}_\d{2}_\d{2}_\d{2}\.json\.gz$/,
       );
       expect(body.data.size).toBeGreaterThan(0);
-    });
-
-    it("should return error if database does not exist", async () => {
-      // Delete the database
-      await fs.promises.unlink(`${tempDir}/jobs.db`);
-
-      const res = await fetch(`${baseUrl}/api/backups`, { method: "POST" });
-      const body = await res.json();
-
-      expect(res.status).toBe(500);
-      expect(body.ok).toBe(false);
-      expect(body.error.message).toContain("Database file not found");
     });
   });
 
@@ -98,7 +85,7 @@ describe.sequential("Backup API routes", () => {
     });
 
     it("should return 404 for non-existent backup", async () => {
-      const res = await fetch(`${baseUrl}/api/backups/jobs_2026_01_01.db`, {
+      const res = await fetch(`${baseUrl}/api/backups/jobs_2026_01_01.json.gz`, {
         method: "DELETE",
       });
       const body = await res.json();

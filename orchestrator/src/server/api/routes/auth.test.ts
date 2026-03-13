@@ -22,13 +22,13 @@ function getSetCookie(response: Response): string {
 describe.sequential("Auth API routes", () => {
   let server: Server;
   let baseUrl: string;
-  let closeDb: () => void;
+  let closeDb: () => Promise<void>;
   let tempDir: string;
 
   beforeEach(() => {
     server = undefined as unknown as Server;
     baseUrl = "";
-    closeDb = () => {};
+    closeDb = async () => {};
     tempDir = "";
   });
 

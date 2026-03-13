@@ -1,5 +1,5 @@
 /**
- * Database schema using Drizzle ORM with SQLite.
+ * Database schema using Drizzle ORM with PostgreSQL.
  */
 
 import {
@@ -14,14 +14,19 @@ import {
 } from "@shared/types";
 import { sql } from "drizzle-orm";
 import {
+  bigint,
+  boolean,
   index,
   integer,
+  jsonb,
+  pgTable,
   real,
-  sqliteTable,
   text,
-} from "drizzle-orm/sqlite-core";
+} from "drizzle-orm/pg-core";
 
-export const jobs = sqliteTable("jobs", {
+const nowText = sql`to_char(timezone('UTC', now()), 'YYYY-MM-DD"T"HH24:MI:SS.MS"Z"')`;
+
+export const jobs = pgTable("jobs", {
   id: text("id").primaryKey(),
 
   // From crawler
@@ -49,7 +54,7 @@ export const jobs = sqliteTable("jobs", {
   salaryMinAmount: real("salary_min_amount"),
   salaryMaxAmount: real("salary_max_amount"),
   salaryCurrency: text("salary_currency"),
-  isRemote: integer("is_remote", { mode: "boolean" }),
+  isRemote: boolean("is_remote"),
   jobLevel: text("job_level"),
   jobFunction: text("job_function"),
   listingType: text("listing_type"),
@@ -83,7 +88,7 @@ export const jobs = sqliteTable("jobs", {
     .notNull()
     .default("discovered"),
   outcome: text("outcome", { enum: APPLICATION_OUTCOMES }),
-  closedAt: integer("closed_at", { mode: "number" }),
+  closedAt: bigint("closed_at", { mode: "number" }),
   suitabilityScore: real("suitability_score"),
   suitabilityReason: text("suitability_reason"),
   tailoredSummary: text("tailored_summary"),
@@ -91,16 +96,21 @@ export const jobs = sqliteTable("jobs", {
   tailoredSkills: text("tailored_skills"),
   selectedProjectIds: text("selected_project_ids"),
   pdfPath: text("pdf_path"),
+  tracerLinksEnabled: boolean("tracer_links_enabled")
+    .notNull()
+    .default(false),
+  sponsorMatchScore: real("sponsor_match_score"),
+  sponsorMatchNames: text("sponsor_match_names"),
 
   // Timestamps
-  discoveredAt: text("discovered_at").notNull().default(sql`(datetime('now'))`),
+  discoveredAt: text("discovered_at").notNull().default(nowText),
   processedAt: text("processed_at"),
   appliedAt: text("applied_at"),
-  createdAt: text("created_at").notNull().default(sql`(datetime('now'))`),
-  updatedAt: text("updated_at").notNull().default(sql`(datetime('now'))`),
+  createdAt: text("created_at").notNull().default(nowText),
+  updatedAt: text("updated_at").notNull().default(nowText),
 });
 
-export const stageEvents = sqliteTable("stage_events", {
+export const stageEvents = pgTable("stage_events", {
   id: text("id").primaryKey(),
   applicationId: text("application_id")
     .notNull()
@@ -109,39 +119,37 @@ export const stageEvents = sqliteTable("stage_events", {
   groupId: text("group_id"),
   fromStage: text("from_stage", { enum: APPLICATION_STAGES }),
   toStage: text("to_stage", { enum: APPLICATION_STAGES }).notNull(),
-  occurredAt: integer("occurred_at", { mode: "number" }).notNull(),
-  metadata: text("metadata", { mode: "json" }),
+  occurredAt: bigint("occurred_at", { mode: "number" }).notNull(),
+  metadata: jsonb("metadata"),
   outcome: text("outcome", { enum: APPLICATION_OUTCOMES }),
 });
 
-export const tasks = sqliteTable("tasks", {
+export const tasks = pgTable("tasks", {
   id: text("id").primaryKey(),
   applicationId: text("application_id")
     .notNull()
     .references(() => jobs.id, { onDelete: "cascade" }),
   type: text("type", { enum: APPLICATION_TASK_TYPES }).notNull(),
   title: text("title").notNull(),
-  dueDate: integer("due_date", { mode: "number" }),
-  isCompleted: integer("is_completed", { mode: "boolean" })
-    .notNull()
-    .default(false),
+  dueDate: bigint("due_date", { mode: "number" }),
+  isCompleted: boolean("is_completed").notNull().default(false),
   notes: text("notes"),
 });
 
-export const interviews = sqliteTable("interviews", {
+export const interviews = pgTable("interviews", {
   id: text("id").primaryKey(),
   applicationId: text("application_id")
     .notNull()
     .references(() => jobs.id, { onDelete: "cascade" }),
-  scheduledAt: integer("scheduled_at", { mode: "number" }).notNull(),
+  scheduledAt: bigint("scheduled_at", { mode: "number" }).notNull(),
   durationMins: integer("duration_mins"),
   type: text("type", { enum: INTERVIEW_TYPES }).notNull(),
   outcome: text("outcome", { enum: INTERVIEW_OUTCOMES }),
 });
 
-export const pipelineRuns = sqliteTable("pipeline_runs", {
+export const pipelineRuns = pgTable("pipeline_runs", {
   id: text("id").primaryKey(),
-  startedAt: text("started_at").notNull().default(sql`(datetime('now'))`),
+  startedAt: text("started_at").notNull().default(nowText),
   completedAt: text("completed_at"),
   status: text("status", {
     enum: ["running", "completed", "failed", "cancelled"],
@@ -153,7 +161,7 @@ export const pipelineRuns = sqliteTable("pipeline_runs", {
   errorMessage: text("error_message"),
 });
 
-export const jobChatThreads = sqliteTable(
+export const jobChatThreads = pgTable(
   "job_chat_threads",
   {
     id: text("id").primaryKey(),
@@ -161,8 +169,8 @@ export const jobChatThreads = sqliteTable(
       .notNull()
       .references(() => jobs.id, { onDelete: "cascade" }),
     title: text("title"),
-    createdAt: text("created_at").notNull().default(sql`(datetime('now'))`),
-    updatedAt: text("updated_at").notNull().default(sql`(datetime('now'))`),
+    createdAt: text("created_at").notNull().default(nowText),
+    updatedAt: text("updated_at").notNull().default(nowText),
     lastMessageAt: text("last_message_at"),
   },
   (table) => ({
@@ -173,7 +181,7 @@ export const jobChatThreads = sqliteTable(
   }),
 );
 
-export const jobChatMessages = sqliteTable(
+export const jobChatMessages = pgTable(
   "job_chat_messages",
   {
     id: text("id").primaryKey(),
@@ -192,8 +200,8 @@ export const jobChatMessages = sqliteTable(
     tokensOut: integer("tokens_out"),
     version: integer("version").notNull().default(1),
     replacesMessageId: text("replaces_message_id"),
-    createdAt: text("created_at").notNull().default(sql`(datetime('now'))`),
-    updatedAt: text("updated_at").notNull().default(sql`(datetime('now'))`),
+    createdAt: text("created_at").notNull().default(nowText),
+    updatedAt: text("updated_at").notNull().default(nowText),
   },
   (table) => ({
     threadCreatedIndex: index("idx_job_chat_messages_thread_created").on(
@@ -203,7 +211,7 @@ export const jobChatMessages = sqliteTable(
   }),
 );
 
-export const jobChatRuns = sqliteTable(
+export const jobChatRuns = pgTable(
   "job_chat_runs",
   {
     id: text("id").primaryKey(),
@@ -220,11 +228,11 @@ export const jobChatRuns = sqliteTable(
     provider: text("provider"),
     errorCode: text("error_code"),
     errorMessage: text("error_message"),
-    startedAt: integer("started_at", { mode: "number" }).notNull(),
-    completedAt: integer("completed_at", { mode: "number" }),
+    startedAt: bigint("started_at", { mode: "number" }).notNull(),
+    completedAt: bigint("completed_at", { mode: "number" }),
     requestId: text("request_id"),
-    createdAt: text("created_at").notNull().default(sql`(datetime('now'))`),
-    updatedAt: text("updated_at").notNull().default(sql`(datetime('now'))`),
+    createdAt: text("created_at").notNull().default(nowText),
+    updatedAt: text("updated_at").notNull().default(nowText),
   },
   (table) => ({
     threadStatusIndex: index("idx_job_chat_runs_thread_status").on(
@@ -234,29 +242,29 @@ export const jobChatRuns = sqliteTable(
   }),
 );
 
-export const settings = sqliteTable("settings", {
+export const settings = pgTable("settings", {
   key: text("key").primaryKey(),
   value: text("value").notNull(),
-  createdAt: text("created_at").notNull().default(sql`(datetime('now'))`),
-  updatedAt: text("updated_at").notNull().default(sql`(datetime('now'))`),
+  createdAt: text("created_at").notNull().default(nowText),
+  updatedAt: text("updated_at").notNull().default(nowText),
 });
 
-export const users = sqliteTable(
+export const users = pgTable(
   "users",
   {
     id: text("id").primaryKey(),
-    username: text("username").notNull().unique(),
+    username: text("username").notNull(),
     passwordHash: text("password_hash").notNull(),
     role: text("role", { enum: ["user", "coach"] }).notNull(),
-    createdAt: text("created_at").notNull().default(sql`(datetime('now'))`),
-    updatedAt: text("updated_at").notNull().default(sql`(datetime('now'))`),
+    createdAt: text("created_at").notNull().default(nowText),
+    updatedAt: text("updated_at").notNull().default(nowText),
   },
   (table) => ({
     roleIndex: index("idx_users_role").on(table.role),
   }),
 );
 
-export const sessions = sqliteTable(
+export const sessions = pgTable(
   "sessions",
   {
     id: text("id").primaryKey(),
@@ -264,8 +272,8 @@ export const sessions = sqliteTable(
       .notNull()
       .references(() => users.id, { onDelete: "cascade" }),
     token: text("token").notNull().unique(),
-    expiresAt: integer("expires_at", { mode: "number" }).notNull(),
-    createdAt: text("created_at").notNull().default(sql`(datetime('now'))`),
+    expiresAt: bigint("expires_at", { mode: "number" }).notNull(),
+    createdAt: text("created_at").notNull().default(nowText),
   },
   (table) => ({
     userIdIndex: index("idx_sessions_user_id").on(table.userId),

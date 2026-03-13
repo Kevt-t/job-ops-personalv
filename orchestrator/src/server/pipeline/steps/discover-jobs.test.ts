@@ -137,7 +137,7 @@ describe("discoverJobsStep", () => {
 
     vi.mocked(settingsRepo.getAllSettings).mockResolvedValue({
       searchTerms: JSON.stringify(["engineer"]),
-      jobspyCountryIndeed: "united states",
+      jobspyCountryIndeed: "japan",
     } as any);
 
     vi.mocked(registryModule.getExtractorRegistry).mockResolvedValue({
@@ -150,11 +150,11 @@ describe("discoverJobsStep", () => {
       discoverJobsStep({
         mergedConfig: {
           ...baseConfig,
-          sources: ["adzuna", "hiringcafe"],
+          sources: ["adzuna", "glassdoor"],
         },
       }),
     ).rejects.toThrow(
-      "No compatible sources for selected country: United States",
+      "No compatible sources for selected country: Japan",
     );
   });
 

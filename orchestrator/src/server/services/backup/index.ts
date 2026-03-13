@@ -1,30 +1,35 @@
 /**
- * Database Backup Service
+ * Database backup service.
  *
- * Manages automatic and manual backups of the SQLite database.
- * Stores backups in the same directory as the original database.
+ * Backups are stored as gzipped logical snapshots so they work with both
+ * locally hosted Postgres and managed providers like Neon.
  */
 
 import fs from "node:fs";
-import type { FileHandle } from "node:fs/promises";
 import path from "node:path";
+import { promisify } from "node:util";
+import { gunzip, gzip } from "node:zlib";
+import { logger } from "@infra/logger";
+import { sanitizeUnknown } from "@infra/sanitize";
 import { getDataDir } from "@server/config/dataDir";
+import { db, schema } from "@server/db/index";
 import { createScheduler } from "@server/utils/scheduler";
 import type { BackupInfo } from "@shared/types";
-import Database from "better-sqlite3";
+import { asc } from "drizzle-orm";
 
-const DB_FILENAME = "jobs.db";
+const gzipAsync = promisify(gzip);
+const gunzipAsync = promisify(gunzip);
+
+const BACKUP_DIRNAME = "backups";
 const AUTO_BACKUP_PREFIX = "jobs_";
 const MANUAL_BACKUP_PREFIX = "jobs_manual_";
-const AUTO_BACKUP_PATTERN = /^jobs_\d{4}_\d{2}_\d{2}\.db$/;
+const AUTO_BACKUP_PATTERN = /^jobs_\d{4}_\d{2}_\d{2}\.json\.gz$/;
 const MANUAL_BACKUP_PATTERN =
-  /^jobs_manual_\d{4}_\d{2}_\d{2}_\d{2}_\d{2}_\d{2}(?:_\d+)?\.db$/;
+  /^jobs_manual_\d{4}_\d{2}_\d{2}_\d{2}_\d{2}_\d{2}(?:_\d+)?\.json\.gz$/;
 
-const AUTO_BACKUP_REGEX = /^jobs_(\d{4})_(\d{2})_(\d{2})\.db$/;
+const AUTO_BACKUP_REGEX = /^jobs_(\d{4})_(\d{2})_(\d{2})\.json\.gz$/;
 const MANUAL_BACKUP_REGEX =
-  /^jobs_manual_(\d{4})_(\d{2})_(\d{2})_(\d{2})_(\d{2})_(\d{2})(?:_\d+)?\.db$/;
-
-type SqliteDatabase = InstanceType<typeof Database>;
+  /^jobs_manual_(\d{4})_(\d{2})_(\d{2})_(\d{2})_(\d{2})_(\d{2})(?:_\d+)?\.json\.gz$/;
 
 interface BackupSettings {
   enabled: boolean;
@@ -32,73 +37,61 @@ interface BackupSettings {
   maxCount: number;
 }
 
-// Current settings (updated by setBackupSettings)
+type BackupSnapshot = {
+  format: "job-ops-backup-v1";
+  createdAt: string;
+  tables: {
+    users: typeof schema.users.$inferSelect[];
+    sessions: typeof schema.sessions.$inferSelect[];
+    settings: typeof schema.settings.$inferSelect[];
+    pipelineRuns: typeof schema.pipelineRuns.$inferSelect[];
+    jobs: typeof schema.jobs.$inferSelect[];
+    stageEvents: typeof schema.stageEvents.$inferSelect[];
+    tasks: typeof schema.tasks.$inferSelect[];
+    interviews: typeof schema.interviews.$inferSelect[];
+    jobChatThreads: typeof schema.jobChatThreads.$inferSelect[];
+    jobChatMessages: typeof schema.jobChatMessages.$inferSelect[];
+    jobChatRuns: typeof schema.jobChatRuns.$inferSelect[];
+  };
+};
+
 let currentSettings: BackupSettings = {
   enabled: false,
   hour: 2,
   maxCount: 5,
 };
 
-// Create scheduler for automatic backups
 const scheduler = createScheduler("backup", async () => {
   await createBackup("auto");
   await cleanupOldBackups();
 });
 
-/**
- * Get the path to the database file
- */
-function getDbPath(): string {
-  return path.join(getDataDir(), DB_FILENAME);
-}
-
-/**
- * Get the data directory path
- */
 function getBackupDir(): string {
-  return getDataDir();
+  return path.join(getDataDir(), BACKUP_DIRNAME);
 }
 
-/**
- * Generate filename for a backup
- */
+async function ensureBackupDir(): Promise<string> {
+  const backupDir = getBackupDir();
+  await fs.promises.mkdir(backupDir, { recursive: true });
+  return backupDir;
+}
+
 function generateBackupFilename(type: "auto" | "manual"): string {
   const now = new Date();
   if (type === "auto") {
-    // Format: jobs_YYYY_MM_DD.db (UTC date to match UTC scheduler)
     const year = now.getUTCFullYear();
     const month = String(now.getUTCMonth() + 1).padStart(2, "0");
     const day = String(now.getUTCDate()).padStart(2, "0");
-    return `${AUTO_BACKUP_PREFIX}${year}_${month}_${day}.db`;
-  } else {
-    // Format: jobs_manual_YYYY_MM_DD_HH_MM_SS.db (local time for manual backups)
-    const year = now.getFullYear();
-    const month = String(now.getMonth() + 1).padStart(2, "0");
-    const day = String(now.getDate()).padStart(2, "0");
-    const hours = String(now.getHours()).padStart(2, "0");
-    const minutes = String(now.getMinutes()).padStart(2, "0");
-    const seconds = String(now.getSeconds()).padStart(2, "0");
-    return `${MANUAL_BACKUP_PREFIX}${year}_${month}_${day}_${hours}_${minutes}_${seconds}.db`;
-  }
-}
-
-/**
- * Parse backup filename to extract creation date
- */
-function parseBackupDate(filename: string): Date | null {
-  const autoMatch = filename.match(AUTO_BACKUP_REGEX);
-  if (autoMatch) {
-    const [, year, month, day] = autoMatch;
-    return buildUtcDate(year, month, day, "0", "0", "0");
+    return `${AUTO_BACKUP_PREFIX}${year}_${month}_${day}.json.gz`;
   }
 
-  const manualMatch = filename.match(MANUAL_BACKUP_REGEX);
-  if (manualMatch) {
-    const [, year, month, day, hours, minutes, seconds] = manualMatch;
-    return buildUtcDate(year, month, day, hours, minutes, seconds);
-  }
-
-  return null;
+  const year = now.getFullYear();
+  const month = String(now.getMonth() + 1).padStart(2, "0");
+  const day = String(now.getDate()).padStart(2, "0");
+  const hours = String(now.getHours()).padStart(2, "0");
+  const minutes = String(now.getMinutes()).padStart(2, "0");
+  const seconds = String(now.getSeconds()).padStart(2, "0");
+  return `${MANUAL_BACKUP_PREFIX}${year}_${month}_${day}_${hours}_${minutes}_${seconds}.json.gz`;
 }
 
 function buildUtcDate(
@@ -135,115 +128,182 @@ function buildUtcDate(
   return date;
 }
 
-/**
- * Determine backup type from filename
- */
+function parseBackupDate(filename: string): Date | null {
+  const autoMatch = filename.match(AUTO_BACKUP_REGEX);
+  if (autoMatch) {
+    const [, year, month, day] = autoMatch;
+    return buildUtcDate(year, month, day, "0", "0", "0");
+  }
+
+  const manualMatch = filename.match(MANUAL_BACKUP_REGEX);
+  if (manualMatch) {
+    const [, year, month, day, hours, minutes, seconds] = manualMatch;
+    return buildUtcDate(year, month, day, hours, minutes, seconds);
+  }
+
+  return null;
+}
+
 function getBackupType(filename: string): "auto" | "manual" | null {
   if (AUTO_BACKUP_PATTERN.test(filename)) return "auto";
   if (MANUAL_BACKUP_PATTERN.test(filename)) return "manual";
   return null;
 }
 
-/**
- * Create a backup of the database
- * @param type - 'auto' for scheduled backups, 'manual' for user-triggered
- * @returns The filename of the created backup
- */
+async function createSnapshot(): Promise<BackupSnapshot> {
+  const [
+    users,
+    sessions,
+    settings,
+    pipelineRuns,
+    jobs,
+    stageEvents,
+    tasks,
+    interviews,
+    jobChatThreads,
+    jobChatMessages,
+    jobChatRuns,
+  ] = await Promise.all([
+    db.select().from(schema.users).orderBy(asc(schema.users.username), asc(schema.users.id)),
+    db
+      .select()
+      .from(schema.sessions)
+      .orderBy(asc(schema.sessions.createdAt), asc(schema.sessions.id)),
+    db.select().from(schema.settings).orderBy(asc(schema.settings.key)),
+    db
+      .select()
+      .from(schema.pipelineRuns)
+      .orderBy(asc(schema.pipelineRuns.startedAt), asc(schema.pipelineRuns.id)),
+    db.select().from(schema.jobs).orderBy(asc(schema.jobs.createdAt), asc(schema.jobs.id)),
+    db
+      .select()
+      .from(schema.stageEvents)
+      .orderBy(asc(schema.stageEvents.occurredAt), asc(schema.stageEvents.id)),
+    db.select().from(schema.tasks).orderBy(asc(schema.tasks.id)),
+    db
+      .select()
+      .from(schema.interviews)
+      .orderBy(asc(schema.interviews.scheduledAt), asc(schema.interviews.id)),
+    db
+      .select()
+      .from(schema.jobChatThreads)
+      .orderBy(asc(schema.jobChatThreads.createdAt), asc(schema.jobChatThreads.id)),
+    db
+      .select()
+      .from(schema.jobChatMessages)
+      .orderBy(asc(schema.jobChatMessages.createdAt), asc(schema.jobChatMessages.id)),
+    db
+      .select()
+      .from(schema.jobChatRuns)
+      .orderBy(asc(schema.jobChatRuns.startedAt), asc(schema.jobChatRuns.id)),
+  ]);
+
+  return {
+    format: "job-ops-backup-v1",
+    createdAt: new Date().toISOString(),
+    tables: {
+      users,
+      sessions,
+      settings,
+      pipelineRuns,
+      jobs,
+      stageEvents,
+      tasks,
+      interviews,
+      jobChatThreads,
+      jobChatMessages,
+      jobChatRuns,
+    },
+  };
+}
+
+function parseSnapshot(raw: string): BackupSnapshot {
+  const parsed = JSON.parse(raw) as Partial<BackupSnapshot>;
+  if (parsed.format !== "job-ops-backup-v1" || !parsed.tables) {
+    throw new Error("Invalid backup snapshot format");
+  }
+  return parsed as BackupSnapshot;
+}
+
 export async function createBackup(type: "auto" | "manual"): Promise<string> {
-  const dbPath = getDbPath();
-  const backupDir = getBackupDir();
+  const backupDir = await ensureBackupDir();
   const baseFilename = generateBackupFilename(type);
   let filename = baseFilename;
   let backupPath = path.join(backupDir, filename);
-  let reservedHandle: FileHandle | null = null;
 
-  // Check if database exists
-  if (!fs.existsSync(dbPath)) {
-    throw new Error(`Database file not found: ${dbPath}`);
-  }
-
-  const tryReserve = async (
-    candidatePath: string,
-  ): Promise<FileHandle | null> => {
+  const tryReserve = async (candidatePath: string): Promise<boolean> => {
     try {
-      return await fs.promises.open(candidatePath, "wx");
+      const handle = await fs.promises.open(candidatePath, "wx");
+      await handle.close();
+      return true;
     } catch (error) {
-      if ((error as NodeJS.ErrnoException).code === "EEXIST") return null;
+      if ((error as NodeJS.ErrnoException).code === "EEXIST") return false;
       throw error;
     }
   };
 
   if (type === "auto") {
-    reservedHandle = await tryReserve(backupPath);
-    if (!reservedHandle) {
-      console.log(
-        `ℹ️ [backup] Auto backup already exists for today: ${filename}`,
-      );
+    const reserved = await tryReserve(backupPath);
+    if (!reserved) {
+      logger.info("Auto backup already exists for current UTC day", {
+        filename,
+        route: "backup",
+      });
       return filename;
     }
   } else {
-    const baseName = baseFilename.replace(/\.db$/, "");
+    const baseName = baseFilename.replace(/\.json\.gz$/, "");
     let sequence = 0;
 
-    while (!reservedHandle && sequence <= 100) {
+    while (sequence <= 100) {
       const candidate =
-        sequence === 0 ? baseFilename : `${baseName}_${sequence}.db`;
+        sequence === 0 ? baseFilename : `${baseName}_${sequence}.json.gz`;
       const candidatePath = path.join(backupDir, candidate);
       const reserved = await tryReserve(candidatePath);
       if (reserved) {
-        reservedHandle = reserved;
         filename = candidate;
         backupPath = candidatePath;
-      } else {
-        sequence += 1;
+        break;
       }
+      sequence += 1;
     }
 
-    if (!reservedHandle) {
+    if (!fs.existsSync(backupPath)) {
       throw new Error("Failed to create unique manual backup filename");
     }
   }
 
-  // Close the reserved file handle before running SQLite backup
-  await reservedHandle.close();
-
-  let sqlite: SqliteDatabase | null = null;
   try {
-    sqlite = new Database(dbPath, { readonly: true, fileMustExist: true });
-    await sqlite.backup(backupPath);
+    const snapshot = await createSnapshot();
+    const payload = await gzipAsync(JSON.stringify(snapshot, null, 2));
+    await fs.promises.writeFile(backupPath, payload);
   } catch (error) {
     await fs.promises.unlink(backupPath).catch(() => undefined);
     throw error;
-  } finally {
-    sqlite?.close();
   }
 
-  console.log(
-    `✅ [backup] Created ${type} backup: ${filename} (${(await fs.promises.stat(backupPath)).size} bytes)`,
-  );
+  const stats = await fs.promises.stat(backupPath);
+  logger.info("Created backup snapshot", {
+    filename,
+    type,
+    size: stats.size,
+    route: "backup",
+  });
 
   return filename;
 }
 
-/**
- * List all backups with metadata
- * @returns Array of backup information
- */
 export async function listBackups(): Promise<BackupInfo[]> {
   const backupDir = getBackupDir();
-
-  // Check if directory exists
   if (!fs.existsSync(backupDir)) {
     return [];
   }
 
-  // Read directory and filter backup files
   const files = await fs.promises.readdir(backupDir);
   const backupFiles = files.filter((file) => {
     return AUTO_BACKUP_PATTERN.test(file) || MANUAL_BACKUP_PATTERN.test(file);
   });
 
-  // Get metadata for each backup
   const backups: BackupInfo[] = [];
   for (const filename of backupFiles) {
     const filePath = path.join(backupDir, filename);
@@ -261,7 +321,6 @@ export async function listBackups(): Promise<BackupInfo[]> {
     }
   }
 
-  // Sort by creation date (newest first)
   backups.sort((a, b) => {
     return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
   });
@@ -269,12 +328,7 @@ export async function listBackups(): Promise<BackupInfo[]> {
   return backups;
 }
 
-/**
- * Delete a specific backup
- * @param filename - Name of the backup file to delete
- */
 export async function deleteBackup(filename: string): Promise<void> {
-  // Validate filename to prevent path traversal
   if (
     !AUTO_BACKUP_PATTERN.test(filename) &&
     !MANUAL_BACKUP_PATTERN.test(filename)
@@ -282,117 +336,162 @@ export async function deleteBackup(filename: string): Promise<void> {
     throw new Error("Invalid backup filename");
   }
 
-  const backupDir = getBackupDir();
-  const filePath = path.join(backupDir, filename);
-
-  // Check if file exists
+  const filePath = path.join(getBackupDir(), filename);
   if (!fs.existsSync(filePath)) {
     throw new Error(`Backup not found: ${filename}`);
   }
 
-  // Delete file
   await fs.promises.unlink(filePath);
-  console.log(`🗑️ [backup] Deleted backup: ${filename}`);
+  logger.info("Deleted backup snapshot", {
+    filename,
+    route: "backup",
+  });
 }
 
-/**
- * Clean up old automatic backups
- * Keeps only the most recent N automatic backups (where N = maxCount)
- * Manual backups are never deleted automatically
- */
-export async function cleanupOldBackups(): Promise<void> {
-  const backups = await listBackups();
+export async function restoreBackup(filename: string): Promise<void> {
+  if (
+    !AUTO_BACKUP_PATTERN.test(filename) &&
+    !MANUAL_BACKUP_PATTERN.test(filename)
+  ) {
+    throw new Error("Invalid backup filename");
+  }
 
-  // Filter to only automatic backups
-  const autoBackups = backups.filter((b) => b.type === "auto");
+  const filePath = path.join(getBackupDir(), filename);
+  const compressed = await fs.promises.readFile(filePath);
+  const snapshot = parseSnapshot(
+    (await gunzipAsync(compressed)).toString("utf-8"),
+  );
 
-  // Sort by creation date (oldest first for deletion)
-  autoBackups.sort((a, b) => {
-    return new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime();
+  await db.transaction(async (tx) => {
+    await tx.delete(schema.jobChatRuns);
+    await tx.delete(schema.jobChatMessages);
+    await tx.delete(schema.jobChatThreads);
+    await tx.delete(schema.interviews);
+    await tx.delete(schema.tasks);
+    await tx.delete(schema.stageEvents);
+    await tx.delete(schema.sessions);
+    await tx.delete(schema.users);
+    await tx.delete(schema.jobs);
+    await tx.delete(schema.pipelineRuns);
+    await tx.delete(schema.settings);
+
+    if (snapshot.tables.users.length > 0) {
+      await tx.insert(schema.users).values(snapshot.tables.users);
+    }
+    if (snapshot.tables.sessions.length > 0) {
+      await tx.insert(schema.sessions).values(snapshot.tables.sessions);
+    }
+    if (snapshot.tables.settings.length > 0) {
+      await tx.insert(schema.settings).values(snapshot.tables.settings);
+    }
+    if (snapshot.tables.pipelineRuns.length > 0) {
+      await tx.insert(schema.pipelineRuns).values(snapshot.tables.pipelineRuns);
+    }
+    if (snapshot.tables.jobs.length > 0) {
+      await tx.insert(schema.jobs).values(snapshot.tables.jobs);
+    }
+    if (snapshot.tables.stageEvents.length > 0) {
+      await tx.insert(schema.stageEvents).values(snapshot.tables.stageEvents);
+    }
+    if (snapshot.tables.tasks.length > 0) {
+      await tx.insert(schema.tasks).values(snapshot.tables.tasks);
+    }
+    if (snapshot.tables.interviews.length > 0) {
+      await tx.insert(schema.interviews).values(snapshot.tables.interviews);
+    }
+    if (snapshot.tables.jobChatThreads.length > 0) {
+      await tx
+        .insert(schema.jobChatThreads)
+        .values(snapshot.tables.jobChatThreads);
+    }
+    if (snapshot.tables.jobChatMessages.length > 0) {
+      await tx
+        .insert(schema.jobChatMessages)
+        .values(snapshot.tables.jobChatMessages);
+    }
+    if (snapshot.tables.jobChatRuns.length > 0) {
+      await tx.insert(schema.jobChatRuns).values(snapshot.tables.jobChatRuns);
+    }
   });
 
-  // Delete oldest backups if we exceed max count
-  const maxCount = currentSettings.maxCount;
-  if (autoBackups.length > maxCount) {
-    const toDelete = autoBackups.slice(0, autoBackups.length - maxCount);
-
-    for (const backup of toDelete) {
-      try {
-        await deleteBackup(backup.filename);
-      } catch (error) {
-        console.error(
-          `❌ [backup] Failed to delete old backup ${backup.filename}:`,
-          error,
-        );
-      }
-    }
-
-    console.log(
-      `🧹 [backup] Cleaned up ${toDelete.length} old automatic backups (max: ${maxCount})`,
-    );
-  }
+  logger.info("Restored backup snapshot", {
+    filename,
+    route: "backup",
+  });
 }
 
-/**
- * Update backup settings and restart scheduler if needed
- * @param settings - New backup settings
- */
+export async function cleanupOldBackups(): Promise<void> {
+  const backups = await listBackups();
+  const autoBackups = backups
+    .filter((backup) => backup.type === "auto")
+    .sort((a, b) => {
+      return new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime();
+    });
+
+  const maxCount = currentSettings.maxCount;
+  if (autoBackups.length <= maxCount) {
+    return;
+  }
+
+  const toDelete = autoBackups.slice(0, autoBackups.length - maxCount);
+  for (const backup of toDelete) {
+    try {
+      await deleteBackup(backup.filename);
+    } catch (error) {
+      logger.warn("Failed to delete old backup snapshot", {
+        filename: backup.filename,
+        error: sanitizeUnknown(error),
+      });
+    }
+  }
+
+  logger.info("Cleaned up old automatic backups", {
+    deleted: toDelete.length,
+    maxCount,
+    route: "backup",
+  });
+}
+
 export function setBackupSettings(settings: Partial<BackupSettings>): void {
   const oldEnabled = currentSettings.enabled;
   const oldHour = currentSettings.hour;
 
-  // Update settings
   currentSettings = { ...currentSettings, ...settings };
 
-  console.log(`⚙️ [backup] Settings updated:`, currentSettings);
+  logger.info("Backup settings updated", {
+    enabled: currentSettings.enabled,
+    hour: currentSettings.hour,
+    maxCount: currentSettings.maxCount,
+    route: "backup",
+  });
 
-  // Restart scheduler if settings changed
   if (currentSettings.enabled) {
     if (!oldEnabled || oldHour !== currentSettings.hour) {
-      // Start or restart with new hour
       scheduler.start(currentSettings.hour);
     }
   } else if (oldEnabled && !currentSettings.enabled) {
-    // Stop scheduler
     scheduler.stop();
   }
 }
 
-/**
- * Get current backup settings
- */
 export function getBackupSettings(): BackupSettings {
   return { ...currentSettings };
 }
 
-/**
- * Get the next scheduled backup time
- * @returns ISO string of next backup time, or null if disabled
- */
 export function getNextBackupTime(): string | null {
   return scheduler.getNextRun();
 }
 
-/**
- * Check if automatic backup scheduler is running
- */
 export function isBackupSchedulerRunning(): boolean {
   return scheduler.isRunning();
 }
 
-/**
- * Start the backup scheduler manually (used on server startup)
- * Only starts if backup is enabled
- */
 export function startBackupScheduler(): void {
   if (currentSettings.enabled) {
     scheduler.start(currentSettings.hour);
   }
 }
 
-/**
- * Stop the backup scheduler
- */
 export function stopBackupScheduler(): void {
   scheduler.stop();
 }

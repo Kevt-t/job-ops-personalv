@@ -7,6 +7,7 @@ import {
   DEMO_DEFAULT_SETTINGS,
   DEMO_DEFAULT_STAGE_EVENTS,
 } from "@server/config/demo-defaults";
+import { createTestDatabase } from "@server/db/test-database";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 const originalEnv = { ...process.env };
@@ -17,14 +18,17 @@ function sortedPairs(map: Record<string, string>) {
 
 describe.sequential("demo seed baseline", () => {
   let tempDir: string;
-  let closeDb: (() => void) | null = null;
+  let closeDb: (() => Promise<void>) | null = null;
+  let testDatabase: Awaited<ReturnType<typeof createTestDatabase>>;
 
   beforeEach(async () => {
     vi.resetModules();
     tempDir = await mkdtemp(join(tmpdir(), "job-ops-demo-seed-test-"));
+    testDatabase = await createTestDatabase();
     process.env = {
       ...originalEnv,
       DATA_DIR: tempDir,
+      DATABASE_URL: testDatabase.databaseUrl,
       NODE_ENV: "test",
       MODEL: "test-model",
       DEMO_MODE: "true",
@@ -36,7 +40,8 @@ describe.sequential("demo seed baseline", () => {
   });
 
   afterEach(async () => {
-    if (closeDb) closeDb();
+    if (closeDb) await closeDb();
+    await testDatabase.cleanup();
     await rm(tempDir, { recursive: true, force: true });
     process.env = { ...originalEnv };
   });

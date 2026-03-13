@@ -2,6 +2,7 @@ import { mkdtemp, rm } from "node:fs/promises";
 import type { Server } from "node:http";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
+import { createTestDatabase } from "@server/db/test-database";
 import { vi } from "vitest";
 
 vi.mock("@server/pipeline/index", () => {
@@ -126,82 +127,95 @@ export async function startServer(options?: {
 }): Promise<{
   server: Server;
   baseUrl: string;
-  closeDb: () => void;
+  closeDb: () => Promise<void>;
   tempDir: string;
 }> {
   vi.resetModules();
   const tempDir = await mkdtemp(join(tmpdir(), "job-ops-api-test-"));
+  const testDatabase = await createTestDatabase();
   const envOverrides = options?.env ?? {};
-  process.env = {
-    ...originalEnv,
-    DATA_DIR: tempDir,
-    NODE_ENV: "test",
-    MODEL: "test-model",
-    JOBSPY_SEARCH_TERMS: "alpha|beta",
-    ...envOverrides,
-  };
+  try {
+    process.env = {
+      ...originalEnv,
+      DATA_DIR: tempDir,
+      DATABASE_URL: testDatabase.databaseUrl,
+      NODE_ENV: "test",
+      MODEL: "test-model",
+      JOBSPY_SEARCH_TERMS: "alpha|beta",
+      ...envOverrides,
+    };
 
-  await import("@server/db/migrate");
-  const { applyStoredEnvOverrides } = await import(
-    "@server/services/envSettings"
-  );
-  const { createApp } = await import("../../app");
-  const { closeDb } = await import("@server/db/index");
-  const { getPipelineStatus } = await import("@server/pipeline/index");
-  vi.mocked(getPipelineStatus).mockReturnValue({ isRunning: false });
-
-  await applyStoredEnvOverrides();
-
-  const app = createApp();
-  const server = app.listen(0);
-  await new Promise<void>((resolve) =>
-    server.once("listening", () => resolve()),
-  );
-  const address = server.address();
-  if (!address || typeof address === "string") {
-    throw new Error("Failed to resolve server address");
-  }
-  const baseUrl = `http://127.0.0.1:${address.port}`;
-
-  const shouldBootstrapAuth =
-    options?.auth ??
-    !["1", "true", "yes"].includes(
-      String(envOverrides.DEMO_MODE ?? "").toLowerCase(),
+    await import("@server/db/migrate");
+    const { applyStoredEnvOverrides } = await import(
+      "@server/services/envSettings"
     );
-  if (shouldBootstrapAuth) {
-    const response = await originalFetch(`${baseUrl}/api/auth/register`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        username: "owner",
-        password: "password123",
-      }),
-    });
+    const { createApp } = await import("../../app");
+    const { closeDb } = await import("@server/db/index");
+    const { getPipelineStatus } = await import("@server/pipeline/index");
+    vi.mocked(getPipelineStatus).mockReturnValue({ isRunning: false });
 
-    if (!response.ok) {
-      throw new Error(`Failed to bootstrap auth for tests (${response.status})`);
+    await applyStoredEnvOverrides();
+
+    const app = createApp();
+    const server = app.listen(0);
+    await new Promise<void>((resolve) =>
+      server.once("listening", () => resolve()),
+    );
+    const address = server.address();
+    if (!address || typeof address === "string") {
+      throw new Error("Failed to resolve server address");
+    }
+    const baseUrl = `http://127.0.0.1:${address.port}`;
+
+    const shouldBootstrapAuth =
+      options?.auth ??
+      !["1", "true", "yes"].includes(
+        String(envOverrides.DEMO_MODE ?? "").toLowerCase(),
+      );
+    if (shouldBootstrapAuth) {
+      const response = await originalFetch(`${baseUrl}/api/auth/register`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          username: "owner",
+          password: "password123",
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error(
+          `Failed to bootstrap auth for tests (${response.status})`,
+        );
+      }
+
+      const [setCookie] = extractSetCookieHeaders(response);
+      if (!setCookie) {
+        throw new Error("Missing auth session cookie during test bootstrap");
+      }
+
+      authCookiesByBaseUrl.set(baseUrl, setCookie);
+      installAuthenticatedFetchWrapper();
     }
 
-    const [setCookie] = extractSetCookieHeaders(response);
-    if (!setCookie) {
-      throw new Error("Missing auth session cookie during test bootstrap");
-    }
-
-    authCookiesByBaseUrl.set(baseUrl, setCookie);
-    installAuthenticatedFetchWrapper();
+    return {
+      server,
+      baseUrl,
+      closeDb: async () => {
+        await closeDb();
+        await testDatabase.cleanup();
+      },
+      tempDir,
+    };
+  } catch (error) {
+    await testDatabase.cleanup().catch(() => undefined);
+    await rm(tempDir, { recursive: true, force: true }).catch(() => undefined);
+    throw error;
   }
-
-  return {
-    server,
-    baseUrl,
-    closeDb,
-    tempDir,
-  };
 }
 
 export async function stopServer(args: {
   server: Server;
-  closeDb: () => void;
+  closeDb: () => Promise<void>;
   tempDir?: string;
 }) {
   const address = args.server?.address();
@@ -210,7 +224,7 @@ export async function stopServer(args: {
     await new Promise<void>((resolve) => args.server.close(() => resolve()));
   }
   if (args.closeDb) {
-    args.closeDb();
+    await args.closeDb();
   }
   if (args.tempDir) {
     await rm(args.tempDir, { recursive: true, force: true });

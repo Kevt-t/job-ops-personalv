@@ -172,8 +172,13 @@ const updateJobSchema = z.object({
 });
 
 function isJobUrlConflictError(error: unknown): boolean {
-  if (!(error instanceof Error)) return false;
-  return /UNIQUE constraint failed: jobs\.job_url/i.test(error.message);
+  if (!error || typeof error !== "object") return false;
+  const code = "code" in error ? String(error.code) : "";
+  const constraint = "constraint" in error ? String(error.constraint) : "";
+  const detail = "detail" in error ? String(error.detail) : "";
+  if (code !== "23505") return false;
+  const searchable = `${constraint} ${detail}`.toLowerCase();
+  return searchable.includes("job_url");
 }
 
 const transitionStageSchema = z.object({
@@ -923,7 +928,7 @@ jobsRouter.get("/:id/tasks", async (req: Request, res: Response) => {
 jobsRouter.post("/:id/stages", async (req: Request, res: Response) => {
   try {
     const input = transitionStageSchema.parse(req.body);
-    const event = transitionStage(
+    const event = await transitionStage(
       req.params.id,
       input.toStage,
       input.occurredAt ?? undefined,
@@ -948,7 +953,7 @@ jobsRouter.patch(
   async (req: Request, res: Response) => {
     try {
       const input = updateStageEventSchema.parse(req.body);
-      updateStageEvent(req.params.eventId, input);
+      await updateStageEvent(req.params.eventId, input);
       res.json({ success: true });
     } catch (error) {
       if (error instanceof z.ZodError) {
@@ -967,7 +972,7 @@ jobsRouter.delete(
   "/:id/events/:eventId",
   async (req: Request, res: Response) => {
     try {
-      deleteStageEvent(req.params.eventId);
+      await deleteStageEvent(req.params.eventId);
       res.json({ success: true });
     } catch (error) {
       const message = error instanceof Error ? error.message : "Unknown error";
@@ -1148,7 +1153,7 @@ jobsRouter.post("/:id/apply", async (req: Request, res: Response) => {
     const appliedAtDate = new Date();
     const appliedAt = appliedAtDate.toISOString();
 
-    transitionStage(
+    await transitionStage(
       job.id,
       "applied",
       Math.floor(appliedAtDate.getTime() / 1000),

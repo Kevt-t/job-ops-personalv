@@ -140,7 +140,7 @@ vi.mock("@server/services/ghostwriter", () => ({
 describe.sequential("Ghostwriter API", () => {
   let server: Server;
   let baseUrl: string;
-  let closeDb: () => void;
+  let closeDb: () => Promise<void>;
   let tempDir: string;
 
   beforeEach(async () => {
