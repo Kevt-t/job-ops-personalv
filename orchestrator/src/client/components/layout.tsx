@@ -22,6 +22,7 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
+import { useAuth } from "@/client/hooks/useAuth";
 import { cn } from "@/lib/utils";
 import { useVersionCheck } from "../hooks/useVersionCheck";
 import { isNavActive, NAV_LINKS } from "./navigation";
@@ -60,6 +61,7 @@ export const PageHeader: React.FC<PageHeaderProps> = ({
   const navOpen = controlledNavOpen ?? internalNavOpen;
   const setNavOpen = onNavOpenChange ?? setInternalNavOpen;
   const { version, updateAvailable } = useVersionCheck();
+  const auth = useAuth();
 
   const handleNavClick = (to: string, activePaths?: string[]) => {
     if (isNavActive(location.pathname, to, activePaths)) {
@@ -160,7 +162,24 @@ export const PageHeader: React.FC<PageHeaderProps> = ({
           {statusIndicator}
         </div>
 
-        <div className="flex items-center gap-2">{actions}</div>
+        <div className="flex items-center gap-2">
+          {actions}
+          {auth.user ? (
+            <>
+              <Badge variant="outline" className="hidden sm:inline-flex">
+                {auth.user.username}
+              </Badge>
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={() => void auth.logout()}
+              >
+                Logout
+              </Button>
+            </>
+          ) : null}
+        </div>
       </div>
     </header>
   );

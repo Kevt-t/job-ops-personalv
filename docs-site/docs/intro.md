@@ -57,7 +57,7 @@ Welcome to the JobOps documentation. This site contains guides for setup, config
 
 - **[Settings](/features/settings)**
   - LLM provider/model and task-specific overrides
-  - Webhooks, service accounts, and basic auth controls
+  - Webhooks, service accounts, and coach account controls
   - Backup scheduling, scoring thresholds, and danger-zone cleanup tools
 
 - **[Reactive Resume](/features/reactive-resume)**

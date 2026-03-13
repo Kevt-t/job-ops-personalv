@@ -41,6 +41,7 @@ interface LogEventModalProps {
   onClose: () => void;
   onLog: (values: LogEventFormValues, eventId?: string) => Promise<void>;
   editingEvent?: StageEvent | null;
+  readOnly?: boolean;
 }
 
 const STAGE_OPTIONS = [
@@ -71,6 +72,7 @@ export const LogEventModal: React.FC<LogEventModalProps> = ({
   onClose,
   onLog,
   editingEvent,
+  readOnly = false,
 }) => {
   const {
     register,
@@ -131,6 +133,7 @@ export const LogEventModal: React.FC<LogEventModalProps> = ({
   }, [selectedStage, setValue, editingEvent]);
 
   const onSubmit = async (values: LogEventFormValues) => {
+    if (readOnly) return;
     await onLog(values, editingEvent?.id);
     onClose();
   };
@@ -156,7 +159,11 @@ export const LogEventModal: React.FC<LogEventModalProps> = ({
               name="stage"
               control={control}
               render={({ field }) => (
-                <Select onValueChange={field.onChange} value={field.value}>
+                <Select
+                  onValueChange={field.onChange}
+                  value={field.value}
+                  disabled={readOnly}
+                >
                   <SelectTrigger className="w-full">
                     <SelectValue placeholder="Select stage" />
                   </SelectTrigger>
@@ -175,19 +182,27 @@ export const LogEventModal: React.FC<LogEventModalProps> = ({
 
           <Field>
             <FieldLabel>Event Title</FieldLabel>
-            <Input {...register("title")} placeholder="e.g. Recruiter Screen" />
+            <Input
+              {...register("title")}
+              placeholder="e.g. Recruiter Screen"
+              disabled={readOnly}
+            />
             <FieldError errors={[errors.title]} />
           </Field>
 
           <Field>
             <FieldLabel>Date</FieldLabel>
-            <Input type="datetime-local" {...register("date")} />
+            <Input type="datetime-local" {...register("date")} disabled={readOnly} />
             <FieldError errors={[errors.date]} />
           </Field>
 
           <Field>
             <FieldLabel>Notes (Optional)</FieldLabel>
-            <Textarea {...register("notes")} placeholder="Add details..." />
+            <Textarea
+              {...register("notes")}
+              placeholder="Add details..."
+              disabled={readOnly}
+            />
             <FieldError errors={[errors.notes]} />
           </Field>
 
@@ -198,7 +213,11 @@ export const LogEventModal: React.FC<LogEventModalProps> = ({
                 name="reasonCode"
                 control={control}
                 render={({ field }) => (
-                  <Select onValueChange={field.onChange} value={field.value}>
+                  <Select
+                    onValueChange={field.onChange}
+                    value={field.value}
+                    disabled={readOnly}
+                  >
                     <SelectTrigger className="w-full">
                       <SelectValue placeholder="Select reason" />
                     </SelectTrigger>
@@ -218,7 +237,11 @@ export const LogEventModal: React.FC<LogEventModalProps> = ({
           {selectedStage === "offer" && (
             <Field className="animate-in fade-in slide-in-from-top-1 duration-200">
               <FieldLabel>Salary / Details</FieldLabel>
-              <Input {...register("salary")} placeholder="e.g. £50k + bonus" />
+              <Input
+                {...register("salary")}
+                placeholder="e.g. £50k + bonus"
+                disabled={readOnly}
+              />
             </Field>
           )}
 
@@ -226,7 +249,7 @@ export const LogEventModal: React.FC<LogEventModalProps> = ({
             <AlertDialogCancel type="button" onClick={onClose}>
               Cancel
             </AlertDialogCancel>
-            <Button type="submit" disabled={isSubmitting}>
+            <Button type="submit" disabled={readOnly || isSubmitting}>
               {isSubmitting
                 ? "Saving..."
                 : editingEvent

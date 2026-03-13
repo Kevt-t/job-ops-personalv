@@ -16,7 +16,7 @@ It lets you configure:
 - LLM provider and models
 - Webhook destinations and secret
 - Display and writing-style defaults
-- Service credentials and basic auth
+- Service credentials and coach account access
 - Reactive Resume project selection
 - Backup and scoring rules
 - Data-clearing actions in the Danger Zone
@@ -32,7 +32,8 @@ Settings gives you runtime overrides for the key parts of discovery, scoring, ta
 1. Open **Settings**.
 2. Expand each section you want to change.
 3. Update values and click **Save Changes**.
-4. Re-run the workflow that uses those settings (for example pipeline runs, Ghostwriter, or resume tailoring) to verify behavior.
+4. Click **Save**.
+5. Re-run the workflow that uses those settings (for example pipeline runs, Ghostwriter, or resume tailoring) to verify behavior.
 
 ## Section-by-section guide
 
@@ -115,9 +116,13 @@ Defaults and constraints:
 ### Environment & Accounts
 
 - Configure service accounts:
-  - RxResume email/password
   - Adzuna app ID/app key
-  - Optional basic authentication for write operations
+
+### Coach Accounts
+
+- Owner accounts can create and delete coach logins
+- Coach accounts can sign in to the full app
+- Coach accounts can view everything but cannot change data
 
 ### Backup
 
@@ -194,6 +199,11 @@ curl -X POST "http://localhost:3001/api/backups"
 
 - Configure RxResume credentials in Environment & Accounts first.
 - Then refresh available resumes from the Reactive Resume section.
+
+### A coach can see the page but cannot click anything
+
+- This is expected.
+- Coach accounts are read-only across the app, including Settings and pipeline actions.
 
 ### RxResume projects look empty in the RxResume UI
 

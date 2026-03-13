@@ -10,6 +10,7 @@ interface OrchestratorHeaderProps {
   isPipelineRunning: boolean;
   isCancelling: boolean;
   pipelineSources: JobSource[];
+  canMutate: boolean;
   onOpenAutomaticRun: () => void;
   onCancelPipeline: () => void;
 }
@@ -20,6 +21,7 @@ export const OrchestratorHeader: React.FC<OrchestratorHeaderProps> = ({
   isPipelineRunning,
   isCancelling,
   pipelineSources,
+  canMutate,
   onOpenAutomaticRun,
   onCancelPipeline,
 }) => {
@@ -27,7 +29,7 @@ export const OrchestratorHeader: React.FC<OrchestratorHeaderProps> = ({
     <Button
       size="sm"
       onClick={onCancelPipeline}
-      disabled={isCancelling}
+      disabled={!canMutate || isCancelling}
       variant="destructive"
       className="gap-2"
     >
@@ -41,7 +43,7 @@ export const OrchestratorHeader: React.FC<OrchestratorHeaderProps> = ({
       </span>
     </Button>
   ) : (
-    <Button size="sm" onClick={onOpenAutomaticRun} className="gap-2">
+    <Button size="sm" onClick={onOpenAutomaticRun} className="gap-2" disabled={!canMutate}>
       <Play className="h-4 w-4" />
       <span className="hidden sm:inline">Run pipeline</span>
     </Button>

@@ -1,6 +1,7 @@
 import * as api from "@client/api";
 import { PageHeader } from "@client/components/layout";
 import { useUpdateSettingsMutation } from "@client/hooks/queries/useSettingsMutation";
+import { useRole } from "@client/hooks/useRole";
 import { useRxResumeConfigState } from "@client/hooks/useRxResumeConfigState";
 import {
   coerceRxResumeMode,
@@ -11,6 +12,7 @@ import {
 } from "@client/lib/rxresume-config";
 import { BackupSettingsSection } from "@client/pages/settings/components/BackupSettingsSection";
 import { ChatSettingsSection } from "@client/pages/settings/components/ChatSettingsSection";
+import { CoachAccountsSection } from "@client/pages/settings/components/CoachAccountsSection";
 import { DangerZoneSection } from "@client/pages/settings/components/DangerZoneSection";
 import { EnvironmentSettingsSection } from "@client/pages/settings/components/EnvironmentSettingsSection";
 import { ModelSettingsSection } from "@client/pages/settings/components/ModelSettingsSection";
@@ -73,12 +75,9 @@ const DEFAULT_FORM_VALUES: UpdateSettingsInput = {
   rxresumeEmail: "",
   rxresumePassword: "",
   rxresumeApiKey: "",
-  basicAuthUser: "",
-  basicAuthPassword: "",
   adzunaAppId: "",
   adzunaAppKey: "",
   webhookSecret: "",
-  enableBasicAuth: false,
   backupEnabled: null,
   backupHour: null,
   backupMaxCount: null,
@@ -127,13 +126,10 @@ const NULL_SETTINGS_PAYLOAD: UpdateSettingsInput = {
   rxresumeEmail: null,
   rxresumePassword: null,
   rxresumeApiKey: null,
-  basicAuthUser: null,
-  basicAuthPassword: null,
   adzunaAppId: null,
   adzunaAppKey: null,
   adzunaMaxJobsPerTerm: null,
   webhookSecret: null,
-  enableBasicAuth: undefined,
   backupEnabled: null,
   backupHour: null,
   backupMaxCount: null,
@@ -166,12 +162,9 @@ const mapSettingsToForm = (data: AppSettings): UpdateSettingsInput => ({
   rxresumeEmail: data.rxresumeEmail ?? "",
   rxresumePassword: "",
   rxresumeApiKey: "",
-  basicAuthUser: data.basicAuthUser ?? "",
-  basicAuthPassword: "",
   adzunaAppId: data.adzunaAppId ?? "",
   adzunaAppKey: "",
   webhookSecret: "",
-  enableBasicAuth: data.basicAuthActive,
   backupEnabled: data.backupEnabled.override,
   backupHour: data.backupHour.override,
   backupMaxCount: data.backupMaxCount.override,
@@ -287,15 +280,12 @@ const getDerivedSettings = (settings: AppSettings | null) => {
       readable: {
         rxresumeEmail: settings?.rxresumeEmail ?? "",
         adzunaAppId: settings?.adzunaAppId ?? "",
-        basicAuthUser: settings?.basicAuthUser ?? "",
       },
       private: {
         rxresumePasswordHint: settings?.rxresumePasswordHint ?? null,
         adzunaAppKeyHint: settings?.adzunaAppKeyHint ?? null,
-        basicAuthPasswordHint: settings?.basicAuthPasswordHint ?? null,
         webhookSecretHint: settings?.webhookSecretHint ?? null,
       },
-      basicAuthActive: settings?.basicAuthActive ?? false,
     },
     defaultResumeProjects: settings?.resumeProjects?.default ?? null,
 
@@ -343,6 +333,7 @@ const getDerivedSettings = (settings: AppSettings | null) => {
 
 export const SettingsPage: React.FC = () => {
   const queryClient = useQueryClient();
+  const { canMutate, role } = useRole();
   const [settings, setSettings] = useState<AppSettings | null>(null);
   const [isSaving, setIsSaving] = useState(false);
   const [rxresumeValidationStatuses, setRxresumeValidationStatuses] = useState<{
@@ -379,7 +370,6 @@ export const SettingsPage: React.FC = () => {
   const {
     handleSubmit,
     reset,
-    setError,
     setValue,
     getValues,
     control,
@@ -635,20 +625,14 @@ export const SettingsPage: React.FC = () => {
   const effectiveMaxProjectsTotal = effectiveProfileProjects.length;
 
   const lockedCount = resumeProjectsValue?.lockedProjectIds.length ?? 0;
+  const isReadOnly = !canMutate;
 
   const canSave = isDirty && isValid;
 
   const onSave = async (data: UpdateSettingsInput) => {
     if (!settings) return;
-    if (data.enableBasicAuth && !settings.basicAuthActive) {
-      const password = data.basicAuthPassword?.trim() ?? "";
-      if (!password) {
-        setError("basicAuthPassword", {
-          type: "manual",
-          message: "Password is required when basic auth is enabled",
-        });
-        return;
-      }
+    if (!canMutate) {
+      return;
     }
     try {
       setIsSaving(true);
@@ -670,24 +654,6 @@ export const SettingsPage: React.FC = () => {
 
       if (dirtyFields.adzunaAppId || dirtyFields.adzunaAppKey) {
         envPayload.adzunaAppId = normalizeString(data.adzunaAppId);
-      }
-
-      if (data.enableBasicAuth === false) {
-        envPayload.basicAuthUser = null;
-        envPayload.basicAuthPassword = null;
-      } else if (
-        dirtyFields.enableBasicAuth ||
-        dirtyFields.basicAuthUser ||
-        dirtyFields.basicAuthPassword
-      ) {
-        // If enabling basic auth or changing either field, ensure we send at least the username
-        // to keep the pair consistent in the backend.
-        envPayload.basicAuthUser = normalizeString(data.basicAuthUser);
-
-        if (dirtyFields.basicAuthPassword) {
-          const value = normalizePrivateInput(data.basicAuthPassword);
-          if (value !== undefined) envPayload.basicAuthPassword = value;
-        }
       }
 
       if (dirtyFields.llmProvider) {
@@ -771,11 +737,6 @@ export const SettingsPage: React.FC = () => {
         ),
         ...envPayload,
       };
-
-      // Remove virtual field because the backend doesn't expect it
-      // this exists only to toggle the UI
-      // need to track it so that the save button is enabled when it changes
-      delete payload.enableBasicAuth;
 
       const updated = await updateSettingsMutation.mutateAsync(payload);
       setSettings(updated);
@@ -905,14 +866,14 @@ export const SettingsPage: React.FC = () => {
           <ModelSettingsSection
             values={model}
             isLoading={isLoading}
-            isSaving={isSaving}
+            isSaving={isSaving || isReadOnly}
           />
           <WebhooksSection
             pipelineWebhook={pipelineWebhook}
             jobCompleteWebhook={jobCompleteWebhook}
             webhookSecretHint={envSettings.private.webhookSecretHint}
             isLoading={isLoading}
-            isSaving={isSaving}
+            isSaving={isSaving || isReadOnly}
           />
           <ReactiveResumeSection
             rxResumeBaseResumeIdDraft={rxResumeBaseResumeIdDraft}
@@ -937,29 +898,32 @@ export const SettingsPage: React.FC = () => {
             maxProjectsTotal={effectiveMaxProjectsTotal}
             isProjectsLoading={isFetchingRxResumeProjects}
             isLoading={isLoading}
-            isSaving={isSaving}
+            isSaving={isSaving || isReadOnly}
           />
           <ChatSettingsSection
             values={chat}
             isLoading={isLoading}
-            isSaving={isSaving}
+            isSaving={isSaving || isReadOnly}
           />
           <ScoringSettingsSection
             values={scoring}
             isLoading={isLoading}
-            isSaving={isSaving}
+            isSaving={isSaving || isReadOnly}
           />
           <EnvironmentSettingsSection
             values={envSettings}
             isLoading={isLoading}
-            isSaving={isSaving}
+            isSaving={isSaving || isReadOnly}
           />
+          {role === "user" ? (
+            <CoachAccountsSection isDisabled={isSaving || isReadOnly} />
+          ) : null}
           <BackupSettingsSection
             values={backup}
             backups={backups}
             nextScheduled={nextScheduled}
             isLoading={isLoading || isLoadingBackups}
-            isSaving={isSaving}
+            isSaving={isSaving || isReadOnly}
             onCreateBackup={handleCreateBackup}
             onDeleteBackup={handleDeleteBackup}
             isCreatingBackup={isCreatingBackup}
@@ -972,21 +936,21 @@ export const SettingsPage: React.FC = () => {
             handleClearDatabase={handleClearDatabase}
             handleClearByScore={handleClearByScore}
             isLoading={isLoading}
-            isSaving={isSaving}
+            isSaving={isSaving || isReadOnly}
           />
         </Accordion>
 
         <div className="flex flex-wrap gap-2">
           <Button
             onClick={handleSubmit(onSave)}
-            disabled={isLoading || isSaving || !canSave}
+            disabled={isLoading || isSaving || isReadOnly || !canSave}
           >
             {isSaving ? "Saving..." : "Save"}
           </Button>
           <Button
             variant="outline"
             onClick={handleReset}
-            disabled={isLoading || isSaving || !settings}
+            disabled={isLoading || isSaving || isReadOnly || !settings}
           >
             Reset to default
           </Button>

@@ -8,6 +8,9 @@ import type {
   ApplicationStage,
   ApplicationTask,
   AppSettings,
+  AuthSessionPayload,
+  AuthStatusResponse,
+  CoachAccountSummary,
   BackupInfo,
   DemoInfoResponse,
   Job,
@@ -35,6 +38,7 @@ import type {
   StageTransitionTarget,
   ValidationResult,
 } from "@shared/types";
+import { notifyUnauthorized } from "@/client/lib/auth";
 import { showDemoBlockedToast, showDemoSimulatedToast } from "@/lib/demo-toast";
 
 const API_BASE = "/api";
@@ -75,41 +79,8 @@ type StreamSseInput =
   | { content: string; stream: true }
   | { stream: true };
 
-export type BasicAuthCredentials = {
-  username: string;
-  password: string;
-};
-
-export type BasicAuthPromptRequest = {
-  endpoint: string;
-  method: string;
-  attempt: number;
-  usernameHint?: string;
-  errorMessage?: string;
-};
-
-type BasicAuthPromptHandler = (
-  request: BasicAuthPromptRequest,
-) => Promise<BasicAuthCredentials | null>;
-
-let basicAuthPromptHandler: BasicAuthPromptHandler | null = null;
-let basicAuthPromptInFlight: Promise<BasicAuthCredentials | null> | null = null;
-let cachedBasicAuthCredentials: BasicAuthCredentials | null = null;
-
-export function setBasicAuthPromptHandler(
-  handler: BasicAuthPromptHandler | null,
-): void {
-  basicAuthPromptHandler = handler;
-}
-
-export function clearBasicAuthCredentials(): void {
-  cachedBasicAuthCredentials = null;
-}
-
 export function __resetApiClientAuthForTests(): void {
-  basicAuthPromptHandler = null;
-  basicAuthPromptInFlight = null;
-  cachedBasicAuthCredentials = null;
+  // Session auth is cookie-based; there is no client-side credential cache.
 }
 
 function normalizeApiResponse<T>(
@@ -155,10 +126,6 @@ function describeAction(endpoint: string, method?: string): string {
   return "This action ran in demo simulation mode.";
 }
 
-function encodeBasicAuth(credentials: BasicAuthCredentials): string {
-  return `Basic ${btoa(`${credentials.username}:${credentials.password}`)}`;
-}
-
 function normalizeHeaders(headers?: HeadersInit): Record<string, string> {
   if (!headers) return {};
   if (headers instanceof Headers) {
@@ -172,10 +139,6 @@ function normalizeHeaders(headers?: HeadersInit): Record<string, string> {
     return Object.fromEntries(headers);
   }
   return { ...headers };
-}
-
-function isWriteMethod(method: string): boolean {
-  return !["GET", "HEAD", "OPTIONS"].includes(method.toUpperCase());
 }
 
 function isUnauthorizedResponse<T>(
@@ -219,22 +182,18 @@ function toApiError<T>(
   );
 }
 
-async function requestBasicAuthCredentials(
-  request: BasicAuthPromptRequest,
-): Promise<BasicAuthCredentials | null> {
-  if (!basicAuthPromptHandler) return null;
-  if (!basicAuthPromptInFlight) {
-    basicAuthPromptInFlight = basicAuthPromptHandler(request).finally(() => {
-      basicAuthPromptInFlight = null;
-    });
-  }
-  return basicAuthPromptInFlight;
+function shouldNotifyUnauthorized(endpoint: string): boolean {
+  const normalized = endpoint.split("?")[0] || endpoint;
+  return ![
+    "/auth/login",
+    "/auth/register",
+    "/auth/status",
+  ].includes(normalized);
 }
 
 async function fetchAndParse<T>(
   endpoint: string,
   options: RequestInit | undefined,
-  authHeader?: string,
 ): Promise<{
   response: Response;
   parsed: ApiResponse<T> | LegacyApiResponse<T>;
@@ -243,10 +202,10 @@ async function fetchAndParse<T>(
     "Content-Type": "application/json",
     ...normalizeHeaders(options?.headers),
   };
-  if (authHeader) headers.Authorization = authHeader;
   const response = await fetch(`${API_BASE}${endpoint}`, {
     ...options,
     headers,
+    credentials: "same-origin",
   });
 
   const text = await response.text();
@@ -269,74 +228,93 @@ async function fetchApi<T>(
   endpoint: string,
   options?: RequestInit,
 ): Promise<T> {
-  const method = (options?.method || "GET").toUpperCase();
-  let authHeader = cachedBasicAuthCredentials
-    ? encodeBasicAuth(cachedBasicAuthCredentials)
-    : undefined;
-  let authAttempt = 0;
-  let usernameHint = cachedBasicAuthCredentials?.username;
+  const { response, parsed } = await fetchAndParse(endpoint, options);
 
-  while (true) {
-    const { response, parsed } = await fetchAndParse(
-      endpoint,
-      options,
-      authHeader,
-    );
-
-    if (
-      isWriteMethod(method) &&
-      isUnauthorizedResponse(response, parsed) &&
-      basicAuthPromptHandler &&
-      authAttempt < 2
-    ) {
-      const credentials = await requestBasicAuthCredentials({
-        endpoint,
-        method,
-        attempt: authAttempt + 1,
-        usernameHint,
-        errorMessage:
-          authAttempt > 0
-            ? "Invalid credentials. Please try again."
-            : undefined,
-      });
-      if (!credentials) {
-        throw toApiError(response, parsed);
+  if ("ok" in parsed) {
+    if (!parsed.ok) {
+      if (parsed.error.code === "UNAUTHORIZED" && shouldNotifyUnauthorized(endpoint)) {
+        notifyUnauthorized();
       }
-      cachedBasicAuthCredentials = credentials;
-      usernameHint = credentials.username;
-      authHeader = encodeBasicAuth(credentials);
-      authAttempt += 1;
-      continue;
-    }
-
-    if ("ok" in parsed) {
-      if (!parsed.ok) {
-        if (parsed.error.code === "UNAUTHORIZED") {
-          clearBasicAuthCredentials();
-        }
-        if (parsed.meta?.blockedReason) {
-          showDemoBlockedToast(parsed.meta.blockedReason);
-        }
-        throw toApiError(response, parsed);
-      }
-      if (parsed.meta?.simulated) {
-        showDemoSimulatedToast(describeAction(endpoint, options?.method));
-      }
-      return parsed.data as T;
-    }
-
-    if (!parsed.success) {
-      if (response.status === 401) {
-        clearBasicAuthCredentials();
+      if (parsed.meta?.blockedReason) {
+        showDemoBlockedToast(parsed.meta.blockedReason);
       }
       throw toApiError(response, parsed);
     }
-
-    const data = parsed.data;
-    if (data !== undefined) return data as T;
-    if (parsed.message !== undefined) return { message: parsed.message } as T;
-    return null as T;
+    if (parsed.meta?.simulated) {
+      showDemoSimulatedToast(describeAction(endpoint, options?.method));
+    }
+    return parsed.data as T;
   }
+
+  if (!parsed.success) {
+    if (isUnauthorizedResponse(response, parsed) && shouldNotifyUnauthorized(endpoint)) {
+      notifyUnauthorized();
+    }
+    throw toApiError(response, parsed);
+  }
+
+  const data = parsed.data;
+  if (data !== undefined) return data as T;
+  if (parsed.message !== undefined) return { message: parsed.message } as T;
+  return null as T;
+}
+
+// Auth API
+export async function authLogin(input: {
+  username: string;
+  password: string;
+}): Promise<AuthSessionPayload> {
+  return fetchApi<AuthSessionPayload>("/auth/login", {
+    method: "POST",
+    body: JSON.stringify(input),
+  });
+}
+
+export async function authRegister(input: {
+  username: string;
+  password: string;
+}): Promise<AuthSessionPayload> {
+  return fetchApi<AuthSessionPayload>("/auth/register", {
+    method: "POST",
+    body: JSON.stringify(input),
+  });
+}
+
+export async function authLogout(): Promise<{ loggedOut: boolean }> {
+  return fetchApi<{ loggedOut: boolean }>("/auth/logout", {
+    method: "POST",
+    body: JSON.stringify({}),
+  });
+}
+
+export async function authGetMe(): Promise<{ user: AuthSessionPayload["user"] }> {
+  return fetchApi<{ user: AuthSessionPayload["user"] }>("/auth/me");
+}
+
+export async function authGetStatus(): Promise<AuthStatusResponse> {
+  return fetchApi<AuthStatusResponse>("/auth/status");
+}
+
+export async function authListCoaches(): Promise<{
+  coaches: CoachAccountSummary[];
+}> {
+  return fetchApi<{ coaches: CoachAccountSummary[] }>("/auth/coaches");
+}
+
+export async function authCreateCoach(input: {
+  username: string;
+  password: string;
+}): Promise<{ coach: CoachAccountSummary }> {
+  return fetchApi<{ coach: CoachAccountSummary }>("/auth/coaches", {
+    method: "POST",
+    body: JSON.stringify(input),
+  });
+}
+
+export async function authDeleteCoach(id: string): Promise<{ deleted: boolean }> {
+  return fetchApi<{ deleted: boolean }>(`/auth/coaches/${id}`, {
+    method: "DELETE",
+  });
 }
 
 // Jobs API
@@ -400,15 +378,13 @@ async function streamSseEvents<TEvent>(
   const headers: Record<string, string> = {
     "Content-Type": "application/json",
   };
-  if (cachedBasicAuthCredentials) {
-    headers.Authorization = encodeBasicAuth(cachedBasicAuthCredentials);
-  }
 
   const response = await fetch(`${API_BASE}${endpoint}`, {
     method: "POST",
     headers,
     body: JSON.stringify(input),
     signal: handlers.signal,
+    credentials: "same-origin",
   });
 
   if (!response.ok) {
@@ -421,6 +397,9 @@ async function streamSseEvents<TEvent>(
       }
     } catch {
       // ignore parse errors; keep status-based message
+    }
+    if (response.status === 401 && shouldNotifyUnauthorized(endpoint)) {
+      notifyUnauthorized();
     }
     throw new ApiClientError(errorMessage, {
       status: response.status,

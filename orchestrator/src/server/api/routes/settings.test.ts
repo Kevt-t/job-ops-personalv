@@ -85,7 +85,6 @@ describe.sequential("Settings API routes", () => {
     expect(Array.isArray(body.data.searchTerms.value)).toBe(true);
     expect(body.data.rxresumeEmail).toBe("resume@example.com");
     expect(body.data.llmApiKeyHint).toBe("secr");
-    expect(body.data.basicAuthActive).toBe(false);
   });
 
   it("normalizes hyphenated openai-compatible env defaults", async () => {
@@ -133,21 +132,6 @@ describe.sequential("Settings API routes", () => {
     expect(patchBody.data.searchTerms.override).toEqual(["engineer"]);
     expect(patchBody.data.rxresumeEmail).toBe("updated@example.com");
     expect(patchBody.data.llmApiKeyHint).toBe("upda");
-  });
-
-  it("validates basic auth requirements", async () => {
-    const res = await fetch(`${baseUrl}/api/settings`, {
-      method: "PATCH",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        enableBasicAuth: true,
-        basicAuthUser: "",
-      }),
-    });
-    expect(res.status).toBe(400);
-    const body = await res.json();
-    expect(body.ok).toBe(false);
-    expect(body.error.message).toContain("Username is required");
   });
 
   it("handles salary penalty settings with validation", async () => {

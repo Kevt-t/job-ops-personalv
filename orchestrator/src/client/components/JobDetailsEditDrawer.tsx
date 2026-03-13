@@ -20,6 +20,7 @@ interface JobDetailsEditDrawerProps {
   onOpenChange: (open: boolean) => void;
   job: Job | null;
   onJobUpdated: () => void | Promise<void>;
+  readOnly?: boolean;
 }
 
 type JobDetailsDraft = {
@@ -77,6 +78,7 @@ export const JobDetailsEditDrawer: React.FC<JobDetailsEditDrawerProps> = ({
   onOpenChange,
   job,
   onJobUpdated,
+  readOnly = false,
 }) => {
   const [draft, setDraft] = useState<JobDetailsDraft>(emptyDraft);
   const [validationError, setValidationError] = useState<string | null>(null);
@@ -107,7 +109,7 @@ export const JobDetailsEditDrawer: React.FC<JobDetailsEditDrawerProps> = ({
   }, [draft, job]);
 
   const handleSave = async () => {
-    if (!job) return;
+    if (!job || readOnly) return;
 
     const title = draft.title.trim();
     const employer = draft.employer.trim();
@@ -210,6 +212,7 @@ export const JobDetailsEditDrawer: React.FC<JobDetailsEditDrawerProps> = ({
                       setDraft((prev) => ({ ...prev, title: value }))
                     }
                     placeholder="e.g. Full Stack Engineer"
+                    disabled={readOnly}
                   />
                   <FieldInput
                     id="edit-job-employer"
@@ -219,6 +222,7 @@ export const JobDetailsEditDrawer: React.FC<JobDetailsEditDrawerProps> = ({
                       setDraft((prev) => ({ ...prev, employer: value }))
                     }
                     placeholder="e.g. Acme Labs"
+                    disabled={readOnly}
                   />
                   <FieldInput
                     id="edit-job-url"
@@ -228,6 +232,7 @@ export const JobDetailsEditDrawer: React.FC<JobDetailsEditDrawerProps> = ({
                       setDraft((prev) => ({ ...prev, jobUrl: value }))
                     }
                     placeholder="https://..."
+                    disabled={readOnly}
                   />
                   <FieldInput
                     id="edit-application-url"
@@ -237,6 +242,7 @@ export const JobDetailsEditDrawer: React.FC<JobDetailsEditDrawerProps> = ({
                       setDraft((prev) => ({ ...prev, applicationLink: value }))
                     }
                     placeholder="https://..."
+                    disabled={readOnly}
                   />
                   <FieldInput
                     id="edit-location"
@@ -246,6 +252,7 @@ export const JobDetailsEditDrawer: React.FC<JobDetailsEditDrawerProps> = ({
                       setDraft((prev) => ({ ...prev, location: value }))
                     }
                     placeholder="e.g. London, UK"
+                    disabled={readOnly}
                   />
                   <FieldInput
                     id="edit-salary"
@@ -255,6 +262,7 @@ export const JobDetailsEditDrawer: React.FC<JobDetailsEditDrawerProps> = ({
                       setDraft((prev) => ({ ...prev, salary: value }))
                     }
                     placeholder="e.g. GBP 90k-110k"
+                    disabled={readOnly}
                   />
                   <FieldInput
                     id="edit-deadline"
@@ -264,6 +272,7 @@ export const JobDetailsEditDrawer: React.FC<JobDetailsEditDrawerProps> = ({
                       setDraft((prev) => ({ ...prev, deadline: value }))
                     }
                     placeholder="e.g. 31 Mar 2026"
+                    disabled={readOnly}
                   />
                 </div>
 
@@ -285,6 +294,7 @@ export const JobDetailsEditDrawer: React.FC<JobDetailsEditDrawerProps> = ({
                     }
                     placeholder="Paste or refine the job description..."
                     className="min-h-[220px] font-mono text-sm leading-relaxed"
+                    disabled={readOnly}
                   />
                 </div>
 
@@ -307,7 +317,7 @@ export const JobDetailsEditDrawer: React.FC<JobDetailsEditDrawerProps> = ({
                 <Button
                   type="button"
                   onClick={() => void handleSave()}
-                  disabled={isSaving || !isDirty}
+                  disabled={isSaving || readOnly || !isDirty}
                 >
                   {isSaving ? (
                     <Loader2 className="mr-2 h-4 w-4 animate-spin" />
@@ -331,7 +341,8 @@ const FieldInput: React.FC<{
   value: string;
   onChange: (value: string) => void;
   placeholder: string;
-}> = ({ id, label, value, onChange, placeholder }) => (
+  disabled?: boolean;
+}> = ({ id, label, value, onChange, placeholder, disabled = false }) => (
   <div className="space-y-1">
     <label htmlFor={id} className="text-xs font-medium text-muted-foreground">
       {label}
@@ -341,6 +352,7 @@ const FieldInput: React.FC<{
       value={value}
       onChange={(event) => onChange(event.target.value)}
       placeholder={placeholder}
+      disabled={disabled}
     />
   </div>
 );

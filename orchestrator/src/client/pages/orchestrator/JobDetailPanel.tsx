@@ -13,6 +13,7 @@ import {
   useSkipJobMutation,
 } from "@client/hooks/queries/useJobMutations";
 import { useProfile } from "@client/hooks/useProfile";
+import { useRole } from "@client/hooks/useRole";
 import type { Job, JobListItem } from "@shared/types.js";
 import {
   CheckCircle2,
@@ -80,6 +81,7 @@ export const JobDetailPanel: React.FC<JobDetailPanelProps> = ({
   const previousSelectedJobIdRef = useRef<string | null>(null);
   const markAsAppliedMutation = useMarkAsAppliedMutation();
   const skipJobMutation = useSkipJobMutation();
+  const { canMutate } = useRole();
 
   const { personName } = useProfile();
 
@@ -131,7 +133,7 @@ export const JobDetailPanel: React.FC<JobDetailPanelProps> = ({
   }, [selectedJob?.jobDescription, isEditingDescription, selectedJob]);
 
   const handleSaveDescription = async () => {
-    if (!selectedJob) return;
+    if (!selectedJob || !canMutate) return;
     try {
       setIsSavingDescription(true);
       await api.updateJob(selectedJob.id, {
@@ -160,6 +162,7 @@ export const JobDetailPanel: React.FC<JobDetailPanelProps> = ({
     }: {
       includeTailoring?: boolean;
     } = {}) => {
+      if (!canMutate) return false;
       const pendingDescription = hasUnsavedDescription;
       const pendingTailoring = includeTailoring && hasUnsavedTailoring;
 
@@ -197,6 +200,7 @@ export const JobDetailPanel: React.FC<JobDetailPanelProps> = ({
       return true;
     },
     [
+      canMutate,
       editedDescription,
       hasUnsavedDescription,
       hasUnsavedTailoring,
@@ -205,7 +209,7 @@ export const JobDetailPanel: React.FC<JobDetailPanelProps> = ({
   );
 
   const handleProcess = async () => {
-    if (!selectedJob) return;
+    if (!selectedJob || !canMutate) return;
     try {
       const shouldProceed = await confirmAndSaveEdits({
         includeTailoring: true,
@@ -249,7 +253,7 @@ export const JobDetailPanel: React.FC<JobDetailPanelProps> = ({
   };
 
   const handleApply = async () => {
-    if (!selectedJob) return;
+    if (!selectedJob || !canMutate) return;
     try {
       await markAsAppliedMutation.mutateAsync(selectedJob.id);
       trackProductEvent("jobs_job_action_completed", {
@@ -274,7 +278,7 @@ export const JobDetailPanel: React.FC<JobDetailPanelProps> = ({
   };
 
   const handleSkip = async () => {
-    if (!selectedJob) return;
+    if (!selectedJob || !canMutate) return;
     try {
       await skipJobMutation.mutateAsync(selectedJob.id);
       trackProductEvent("jobs_job_action_completed", {
@@ -299,7 +303,7 @@ export const JobDetailPanel: React.FC<JobDetailPanelProps> = ({
   };
 
   const handleMoveToInProgress = async () => {
-    if (!selectedJob) return;
+    if (!selectedJob || !canMutate) return;
     try {
       await api.updateJob(selectedJob.id, { status: "in_progress" });
       trackProductEvent("jobs_job_action_completed", {
@@ -457,7 +461,7 @@ export const JobDetailPanel: React.FC<JobDetailPanelProps> = ({
             variant="outline"
             className="h-8 gap-1.5 text-xs"
             onClick={handleProcess}
-            disabled={!canProcess || isProcessingSelected}
+            disabled={!canMutate || !canProcess || isProcessingSelected}
           >
             {isProcessingSelected ? (
               <Loader2 className="h-3.5 w-3.5 animate-spin" />
@@ -473,6 +477,7 @@ export const JobDetailPanel: React.FC<JobDetailPanelProps> = ({
             size="sm"
             className="h-8 gap-1.5 text-xs bg-emerald-600/20 text-emerald-300 hover:bg-emerald-600/30 border border-emerald-500/30"
             onClick={handleApply}
+            disabled={!canMutate}
           >
             <CheckCircle2 className="h-3.5 w-3.5" />
             Applied
@@ -484,6 +489,7 @@ export const JobDetailPanel: React.FC<JobDetailPanelProps> = ({
             size="sm"
             className="h-8 gap-1.5 text-xs bg-cyan-600/20 text-cyan-300 hover:bg-cyan-600/30 border border-cyan-500/30"
             onClick={handleMoveToInProgress}
+            disabled={!canMutate}
           >
             <CheckCircle2 className="h-3.5 w-3.5" />
             Move to In Progress
@@ -500,7 +506,7 @@ export const JobDetailPanel: React.FC<JobDetailPanelProps> = ({
             {canProcess && !showGeneratePdf && (
               <DropdownMenuItem
                 onSelect={() => void handleProcess()}
-                disabled={isProcessingSelected}
+                disabled={!canMutate || isProcessingSelected}
               >
                 <RefreshCcw className="mr-2 h-4 w-4" />
                 {isProcessingSelected
@@ -515,11 +521,12 @@ export const JobDetailPanel: React.FC<JobDetailPanelProps> = ({
                 setDetailTab("description");
                 setIsEditingDescription(true);
               }}
+              disabled={!canMutate}
             >
               <Edit2 className="mr-2 h-4 w-4" />
               Edit description
             </DropdownMenuItem>
-            <DropdownMenuItem onSelect={() => setIsEditDetailsOpen(true)}>
+            <DropdownMenuItem onSelect={() => setIsEditDetailsOpen(true)} disabled={!canMutate}>
               <Edit2 className="mr-2 h-4 w-4" />
               Edit details
             </DropdownMenuItem>
@@ -557,6 +564,7 @@ export const JobDetailPanel: React.FC<JobDetailPanelProps> = ({
                 <DropdownMenuSeparator />
                 <DropdownMenuItem
                   onSelect={() => void handleSkip()}
+                  disabled={!canMutate}
                   className="text-destructive focus:text-destructive"
                 >
                   <XCircle className="mr-2 h-4 w-4" />
@@ -651,7 +659,9 @@ export const JobDetailPanel: React.FC<JobDetailPanelProps> = ({
               saveTailoringRef.current = save;
             }}
             onBeforeGenerate={() =>
-              confirmAndSaveEdits({ includeTailoring: false })
+              canMutate
+                ? confirmAndSaveEdits({ includeTailoring: false })
+                : false
             }
           />
         </TabsContent>
@@ -668,6 +678,7 @@ export const JobDetailPanel: React.FC<JobDetailPanelProps> = ({
                   variant="ghost"
                   onClick={() => setIsEditingDescription(true)}
                   className="h-8 px-2 text-xs"
+                  disabled={!canMutate}
                 >
                   <Edit2 className="mr-1.5 h-3.5 w-3.5" />
                   Edit
@@ -691,7 +702,7 @@ export const JobDetailPanel: React.FC<JobDetailPanelProps> = ({
                     variant="secondary"
                     onClick={handleSaveDescription}
                     className="h-8 px-3 text-xs"
-                    disabled={isSavingDescription}
+                    disabled={!canMutate || isSavingDescription}
                   >
                     {isSavingDescription ? (
                       <Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" />
@@ -738,6 +749,7 @@ export const JobDetailPanel: React.FC<JobDetailPanelProps> = ({
                   onChange={(event) => setEditedDescription(event.target.value)}
                   className="min-h-[400px] font-mono text-sm leading-relaxed focus-visible:ring-1"
                   placeholder="Enter job description..."
+                  disabled={!canMutate}
                 />
                 <div className="flex justify-end gap-2">
                   <Button
@@ -754,7 +766,7 @@ export const JobDetailPanel: React.FC<JobDetailPanelProps> = ({
                   <Button
                     size="sm"
                     onClick={handleSaveDescription}
-                    disabled={isSavingDescription}
+                    disabled={!canMutate || isSavingDescription}
                   >
                     {isSavingDescription ? (
                       <Loader2 className="mr-2 h-4 w-4 animate-spin" />
@@ -781,6 +793,7 @@ export const JobDetailPanel: React.FC<JobDetailPanelProps> = ({
         onOpenChange={setIsEditDetailsOpen}
         job={selectedJob}
         onJobUpdated={onJobUpdated}
+        readOnly={!canMutate}
       />
     </div>
   );

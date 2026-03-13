@@ -36,6 +36,7 @@ import {
   useUpdateJobMutation,
 } from "@/client/hooks/queries/useJobMutations";
 import { useQueryErrorToast } from "@/client/hooks/useQueryErrorToast";
+import { useRole } from "@/client/hooks/useRole";
 import { queryKeys } from "@/client/lib/queryKeys";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -44,7 +45,6 @@ import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
-  DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import {
@@ -67,6 +67,7 @@ export const JobPage: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
+  const { canMutate } = useRole();
   const [isLogModalOpen, setIsLogModalOpen] = React.useState(false);
   const [isDeleteModalOpen, setIsDeleteModalOpen] = React.useState(false);
   const [isEditDetailsOpen, setIsEditDetailsOpen] = React.useState(false);
@@ -133,7 +134,7 @@ export const JobPage: React.FC = () => {
     values: LogEventFormValues,
     eventId?: string,
   ) => {
-    if (!job) return;
+    if (!job || !canMutate) return;
     if (job.status !== "in_progress") {
       toast.error("Move this job to In Progress to track stages.");
       return;
@@ -214,7 +215,7 @@ export const JobPage: React.FC = () => {
   };
 
   const handleDeleteEvent = async () => {
-    if (!job || !eventToDelete) return;
+    if (!job || !eventToDelete || !canMutate) return;
     try {
       await api.deleteJobStageEvent(job.id, eventToDelete);
       await invalidateJobData(queryClient, job.id);
@@ -230,13 +231,14 @@ export const JobPage: React.FC = () => {
   };
 
   const handleEditEvent = (event: StageEvent) => {
+    if (!canMutate) return;
     setEditingEvent(event);
     setIsLogModalOpen(true);
   };
 
   const runAction = React.useCallback(
     async (actionKey: string, task: () => Promise<void>) => {
-      if (!job) return;
+      if (!job || !canMutate) return;
       try {
         setActiveAction(actionKey);
         await task();
@@ -249,7 +251,7 @@ export const JobPage: React.FC = () => {
         setActiveAction(null);
       }
     },
-    [job, loadData],
+    [canMutate, job, loadData],
   );
 
   const handleMarkApplied = async () => {
@@ -315,7 +317,7 @@ export const JobPage: React.FC = () => {
     : null;
   const isClosedStage = currentStage === "closed";
   const canTrackStages = job?.status === "in_progress";
-  const canLogEvents = canTrackStages && !isClosedStage;
+  const canLogEvents = canMutate && canTrackStages && !isClosedStage;
   const jobLink = job ? job.applicationLink || job.jobUrl : null;
   const pdfHref = job?.pdfPath
     ? `/pdfs/resume_${job.id}.pdf?v=${encodeURIComponent(job.updatedAt)}`
@@ -374,7 +376,7 @@ export const JobPage: React.FC = () => {
                     variant="outline"
                     className="h-9 border-orange-400/50 bg-orange-500/10 text-orange-100 hover:bg-orange-500/20"
                     onClick={() => void handleMarkApplied()}
-                    disabled={isBusy}
+                    disabled={!canMutate || isBusy}
                   >
                     <CheckCircle2 className="mr-1.5 h-3.5 w-3.5" />
                     Mark Applied
@@ -384,7 +386,7 @@ export const JobPage: React.FC = () => {
                     variant="outline"
                     className="h-9 border-border/60 bg-background/30"
                     onClick={() => void handleSkip()}
-                    disabled={isBusy}
+                    disabled={!canMutate || isBusy}
                   >
                     <XCircle className="mr-1.5 h-3.5 w-3.5" />
                     Skip Job
@@ -398,7 +400,7 @@ export const JobPage: React.FC = () => {
                     size="sm"
                     className="h-9 border border-orange-400/50 bg-orange-500/20 text-orange-100 hover:bg-orange-500/30"
                     onClick={() => navigate(`/jobs/discovered/${job.id}`)}
-                    disabled={isBusy}
+                    disabled={!canMutate || isBusy}
                   >
                     <Sparkles className="mr-1.5 h-3.5 w-3.5" />
                     Start Tailoring
@@ -408,7 +410,7 @@ export const JobPage: React.FC = () => {
                     variant="outline"
                     className="h-9 border-border/60 bg-background/30"
                     onClick={() => void handleSkip()}
-                    disabled={isBusy}
+                    disabled={!canMutate || isBusy}
                   >
                     <XCircle className="mr-1.5 h-3.5 w-3.5" />
                     Skip Job
@@ -421,7 +423,7 @@ export const JobPage: React.FC = () => {
                   size="sm"
                   className="h-9 border border-orange-400/50 bg-orange-500/20 text-orange-100 hover:bg-orange-500/30"
                   onClick={() => void handleMoveToInProgress()}
-                  disabled={isBusy}
+                  disabled={!canMutate || isBusy}
                 >
                   <CheckCircle2 className="mr-1.5 h-3.5 w-3.5" />
                   Move to In Progress
@@ -448,7 +450,7 @@ export const JobPage: React.FC = () => {
                   variant="outline"
                   className="h-9 border-border/60 bg-background/30"
                   onClick={() => navigate(`/jobs/ready/${job.id}`)}
-                  disabled={isBusy}
+                  disabled={!canMutate || isBusy}
                 >
                   <Sparkles className="mr-1.5 h-3.5 w-3.5" />
                   Edit Tailoring
@@ -475,7 +477,7 @@ export const JobPage: React.FC = () => {
                   variant="outline"
                   className="h-9 border-border/60 bg-background/30"
                   onClick={() => void handleRegeneratePdf()}
-                  disabled={isBusy}
+                  disabled={!canMutate || isBusy}
                 >
                   <RefreshCcw className="mr-1.5 h-3.5 w-3.5" />
                   Regenerate PDF
@@ -494,7 +496,7 @@ export const JobPage: React.FC = () => {
                   </Button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end">
-                  <DropdownMenuItem onSelect={() => setIsEditDetailsOpen(true)}>
+                  <DropdownMenuItem onSelect={() => setIsEditDetailsOpen(true)} disabled={!canMutate}>
                     <Edit2 className="mr-2 h-4 w-4" />
                     Edit details
                   </DropdownMenuItem>
@@ -503,7 +505,7 @@ export const JobPage: React.FC = () => {
                     Copy job info
                   </DropdownMenuItem>
                   {(isReady || isDiscovered) && (
-                    <DropdownMenuItem onSelect={() => void handleRescore()}>
+                    <DropdownMenuItem onSelect={() => void handleRescore()} disabled={!canMutate}>
                       <RefreshCcw className="mr-2 h-4 w-4" />
                       Recalculate match
                     </DropdownMenuItem>
@@ -572,7 +574,7 @@ export const JobPage: React.FC = () => {
                   <CalendarClock className="h-4 w-4" />
                   Application details
                 </CardTitle>
-                <GhostwriterDrawer job={job} />
+                <GhostwriterDrawer job={job} disabled={!canMutate} />
               </div>
             </CardHeader>
             <CardContent className="space-y-4">
@@ -656,6 +658,7 @@ export const JobPage: React.FC = () => {
         }}
         onLog={handleLogEvent}
         editingEvent={editingEvent}
+        readOnly={!canMutate}
       />
 
       <ConfirmDelete
@@ -672,6 +675,7 @@ export const JobPage: React.FC = () => {
         onOpenChange={setIsEditDetailsOpen}
         job={job}
         onJobUpdated={loadData}
+        readOnly={!canMutate}
       />
     </main>
   );

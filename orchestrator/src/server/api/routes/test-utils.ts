@@ -64,9 +64,65 @@ vi.mock("@server/services/profile", () => ({
 }));
 
 const originalEnv = { ...process.env };
+const originalFetch = globalThis.fetch.bind(globalThis);
+const authCookiesByBaseUrl = new Map<string, string>();
+
+function extractSetCookieHeaders(response: Response): string[] {
+  const headers = response.headers as Headers & {
+    getSetCookie?: () => string[];
+  };
+  if (typeof headers.getSetCookie === "function") {
+    return headers.getSetCookie();
+  }
+  const value = headers.get("set-cookie");
+  return value ? [value] : [];
+}
+
+function installAuthenticatedFetchWrapper() {
+  globalThis.fetch = (async (
+    input: RequestInfo | URL,
+    init?: RequestInit,
+  ): Promise<Response> => {
+    const requestUrl =
+      typeof input === "string"
+        ? input
+        : input instanceof URL
+          ? input.toString()
+          : input.url;
+
+    const match = Array.from(authCookiesByBaseUrl.entries()).find(([baseUrl]) =>
+      requestUrl.startsWith(baseUrl),
+    );
+
+    const nextInit: RequestInit = init ? { ...init } : {};
+    if (match) {
+      const [baseUrl, cookie] = match;
+      const headers = new Headers(init?.headers);
+      if (!headers.has("cookie")) {
+        headers.set("cookie", cookie);
+      }
+      nextInit.headers = headers;
+      const response = await originalFetch(input, nextInit);
+      const setCookies = extractSetCookieHeaders(response);
+      if (setCookies.length > 0) {
+        authCookiesByBaseUrl.set(baseUrl, setCookies[0]);
+      }
+      return response;
+    }
+
+    return originalFetch(input, nextInit);
+  }) as typeof globalThis.fetch;
+}
+
+function maybeRestoreFetch() {
+  if (authCookiesByBaseUrl.size === 0) {
+    globalThis.fetch = originalFetch;
+  }
+}
 
 export async function startServer(options?: {
   env?: Record<string, string | undefined>;
+  auth?: boolean;
 }): Promise<{
   server: Server;
   baseUrl: string;
@@ -105,9 +161,39 @@ export async function startServer(options?: {
   if (!address || typeof address === "string") {
     throw new Error("Failed to resolve server address");
   }
+  const baseUrl = `http://127.0.0.1:${address.port}`;
+
+  const shouldBootstrapAuth =
+    options?.auth ??
+    !["1", "true", "yes"].includes(
+      String(envOverrides.DEMO_MODE ?? "").toLowerCase(),
+    );
+  if (shouldBootstrapAuth) {
+    const response = await originalFetch(`${baseUrl}/api/auth/register`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        username: "owner",
+        password: "password123",
+      }),
+    });
+
+    if (!response.ok) {
+      throw new Error(`Failed to bootstrap auth for tests (${response.status})`);
+    }
+
+    const [setCookie] = extractSetCookieHeaders(response);
+    if (!setCookie) {
+      throw new Error("Missing auth session cookie during test bootstrap");
+    }
+
+    authCookiesByBaseUrl.set(baseUrl, setCookie);
+    installAuthenticatedFetchWrapper();
+  }
+
   return {
     server,
-    baseUrl: `http://127.0.0.1:${address.port}`,
+    baseUrl,
     closeDb,
     tempDir,
   };
@@ -118,6 +204,7 @@ export async function stopServer(args: {
   closeDb: () => void;
   tempDir?: string;
 }) {
+  const address = args.server?.address();
   // Defensive: if startServer throws, callers may still run cleanup.
   if (args.server) {
     await new Promise<void>((resolve) => args.server.close(() => resolve()));
@@ -128,6 +215,10 @@ export async function stopServer(args: {
   if (args.tempDir) {
     await rm(args.tempDir, { recursive: true, force: true });
   }
+  if (address && typeof address !== "string") {
+    authCookiesByBaseUrl.delete(`http://127.0.0.1:${address.port}`);
+  }
+  maybeRestoreFetch();
   process.env = { ...originalEnv };
   vi.clearAllMocks();
 }

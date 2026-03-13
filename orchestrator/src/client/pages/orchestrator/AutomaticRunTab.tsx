@@ -96,9 +96,6 @@ function getSourceDisabledReason(
       ? GLASSDOOR_LOCATION_REASON
       : GLASSDOOR_COUNTRY_REASON;
   }
-  if (EXTRACTOR_SOURCE_METADATA[source]?.ukOnly) {
-    return `${sourceLabel[source]} is available only when country is United Kingdom.`;
-  }
   return `${sourceLabel[source]} is not available for the selected country.`;
 }
 

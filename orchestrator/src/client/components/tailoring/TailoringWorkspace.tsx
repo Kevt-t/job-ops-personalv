@@ -1,4 +1,5 @@
 import * as api from "@client/api";
+import { useRole } from "@client/hooks/useRole";
 import { useProfile } from "@client/hooks/useProfile";
 import type { Job } from "@shared/types.js";
 import { ArrowLeft, Check, FileText, Loader2, Sparkles } from "lucide-react";
@@ -99,6 +100,7 @@ export const TailoringWorkspace: React.FC<TailoringWorkspaceProps> = (
   const [isGeneratingPdf, setIsGeneratingPdf] = useState(false);
   const [isGenerating, setIsGenerating] = useState(false);
   const { profile, error: profileError } = useProfile();
+  const { canMutate } = useRole();
 
   const originalValues = useMemo(() => {
     const skillsDraft = toEditableSkillGroups(getOriginalSkills(profile));
@@ -301,9 +303,11 @@ export const TailoringWorkspace: React.FC<TailoringWorkspaceProps> = (
     );
   }, [aiBaseline.skillsJson, setSkillsDraft]);
 
-  const disableInputs = editorProps
-    ? isSummarizing || isGeneratingPdf || isSaving
-    : isGenerating || Boolean(tailorProps?.isFinalizing) || isSaving;
+  const disableInputs = !canMutate
+    ? true
+    : editorProps
+      ? isSummarizing || isGeneratingPdf || isSaving
+      : isGenerating || Boolean(tailorProps?.isFinalizing) || isSaving;
 
   const canFinalize = canFinalizeTailoring(summary);
   const tailoringSectionsProps = useMemo<TailoringSectionsProps>(
@@ -387,7 +391,7 @@ export const TailoringWorkspace: React.FC<TailoringWorkspaceProps> = (
               size="sm"
               variant="outline"
               onClick={handleSummarizeEditor}
-              disabled={isSummarizing || isGeneratingPdf || isSaving}
+              disabled={!canMutate || isSummarizing || isGeneratingPdf || isSaving}
               className="w-full sm:w-auto"
             >
               {isSummarizing ? (
@@ -401,7 +405,11 @@ export const TailoringWorkspace: React.FC<TailoringWorkspaceProps> = (
               size="sm"
               onClick={handleGeneratePdf}
               disabled={
-                isSummarizing || isGeneratingPdf || isSaving || !summary
+                !canMutate ||
+                isSummarizing ||
+                isGeneratingPdf ||
+                isSaving ||
+                !summary
               }
               className="w-full sm:w-auto"
             >
@@ -423,7 +431,7 @@ export const TailoringWorkspace: React.FC<TailoringWorkspaceProps> = (
               variant="ghost"
               size="sm"
               onClick={() => void saveChanges()}
-              disabled={isSaving}
+              disabled={!canMutate || isSaving}
             >
               {isSaving ? (
                 <Loader2 className="h-4 w-4 animate-spin" />
@@ -473,7 +481,7 @@ export const TailoringWorkspace: React.FC<TailoringWorkspaceProps> = (
             size="sm"
             variant="outline"
             onClick={handleGenerateWithAi}
-            disabled={isGenerating || tailorProps.isFinalizing || isSaving}
+            disabled={!canMutate || isGenerating || tailorProps.isFinalizing || isSaving}
             className="h-8 w-full text-xs sm:w-auto"
           >
             {isGenerating ? (
@@ -499,7 +507,12 @@ export const TailoringWorkspace: React.FC<TailoringWorkspaceProps> = (
         )}
         <Button
           onClick={() => void handleFinalize()}
-          disabled={tailorProps.isFinalizing || !canFinalize || isGenerating}
+          disabled={
+            !canMutate ||
+            tailorProps.isFinalizing ||
+            !canFinalize ||
+            isGenerating
+          }
           className="h-10 w-full bg-emerald-600 text-white hover:bg-emerald-500"
         >
           {tailorProps.isFinalizing ? (

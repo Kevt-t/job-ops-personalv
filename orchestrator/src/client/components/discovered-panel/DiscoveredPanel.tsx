@@ -1,4 +1,5 @@
 import * as api from "@client/api";
+import { useRole } from "@client/hooks/useRole";
 import { useSkipJobMutation } from "@client/hooks/queries/useJobMutations";
 import { useRescoreJob } from "@client/hooks/useRescoreJob";
 import type { Job } from "@shared/types.js";
@@ -34,6 +35,7 @@ export const DiscoveredPanel: React.FC<DiscoveredPanelProps> = ({
   const previousJobIdRef = useRef<string | null>(null);
   const skipJobMutation = useSkipJobMutation();
   const { isRescoring, rescoreJob } = useRescoreJob(onJobUpdated);
+  const { canMutate } = useRole();
 
   useEffect(() => {
     const currentJobId = job?.id ?? null;
@@ -57,7 +59,7 @@ export const DiscoveredPanel: React.FC<DiscoveredPanelProps> = ({
   }, [onTailoringDirtyChange]);
 
   const handleSkip = async () => {
-    if (!job) return;
+    if (!job || !canMutate) return;
     try {
       setIsSkipping(true);
       await skipJobMutation.mutateAsync(job.id);
@@ -86,7 +88,7 @@ export const DiscoveredPanel: React.FC<DiscoveredPanelProps> = ({
   };
 
   const handleFinalize = async () => {
-    if (!job) return;
+    if (!job || !canMutate) return;
     try {
       setIsFinalizing(true);
       await api.processJob(job.id);
@@ -118,7 +120,10 @@ export const DiscoveredPanel: React.FC<DiscoveredPanelProps> = ({
     }
   };
 
-  const handleRescore = () => rescoreJob(job?.id);
+  const handleRescore = () => {
+    if (!canMutate) return;
+    return rescoreJob(job?.id);
+  };
 
   if (!job) {
     return <EmptyState />;
@@ -139,6 +144,7 @@ export const DiscoveredPanel: React.FC<DiscoveredPanelProps> = ({
           onRescore={handleRescore}
           isRescoring={isRescoring}
           onEditDetails={() => setIsEditDetailsOpen(true)}
+          canMutate={canMutate}
         />
       ) : (
         <TailorMode
@@ -155,6 +161,7 @@ export const DiscoveredPanel: React.FC<DiscoveredPanelProps> = ({
         onOpenChange={setIsEditDetailsOpen}
         job={job}
         onJobUpdated={onJobUpdated}
+        readOnly={!canMutate}
       />
     </div>
   );

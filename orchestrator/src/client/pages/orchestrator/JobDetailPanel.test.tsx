@@ -1,5 +1,6 @@
 import * as api from "@client/api";
 import { renderWithQueryClient } from "@client/test/renderWithQueryClient";
+import { useRole } from "@client/hooks/useRole";
 import { createJob } from "@shared/testing/factories.js";
 import type { Job } from "@shared/types.js";
 import { act, fireEvent, screen, waitFor } from "@testing-library/react";
@@ -60,6 +61,10 @@ vi.mock("@client/components/ReadyPanel", () => ({
       </button>
     </div>
   ),
+}));
+
+vi.mock("@client/hooks/useRole", () => ({
+  useRole: vi.fn(),
 }));
 
 vi.mock("@client/components/TailoringEditor", () => ({
@@ -146,6 +151,11 @@ const renderJobDetailPanel = async (
 describe("JobDetailPanel", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    vi.mocked(useRole).mockReturnValue({
+      role: "user",
+      isCoach: false,
+      canMutate: true,
+    });
   });
 
   it("renders the discovered panel when active tab is discovered", async () => {

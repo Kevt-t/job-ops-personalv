@@ -17,6 +17,7 @@ type UseKeyboardShortcutsArgs = {
   isAnyModalOpen: boolean;
   isAnyModalOpenExcludingCommandBar: boolean;
   isAnyModalOpenExcludingHelp: boolean;
+  canMutate: boolean;
   activeTab: FilterTab;
   activeJobs: JobListItem[];
   selectedJobId: string | null;
@@ -39,6 +40,7 @@ export function useKeyboardShortcuts(args: UseKeyboardShortcutsArgs): void {
     isAnyModalOpen,
     isAnyModalOpenExcludingCommandBar,
     isAnyModalOpenExcludingHelp,
+    canMutate,
     activeTab,
     activeJobs,
     selectedJobId,
@@ -134,6 +136,7 @@ export function useKeyboardShortcuts(args: UseKeyboardShortcutsArgs): void {
 
       // ── Context actions ─────────────────────────────────────────────────
       [SHORTCUTS.skip.key]: () => {
+        if (!canMutate) return;
         if (!["discovered", "ready"].includes(activeTab)) return;
         if (shortcutActionInFlight.current) return;
 
@@ -163,6 +166,7 @@ export function useKeyboardShortcuts(args: UseKeyboardShortcutsArgs): void {
       },
 
       [SHORTCUTS.markApplied.key]: () => {
+        if (!canMutate) return;
         if (!selectedJob) return;
         if (activeTab !== "ready") return;
         if (shortcutActionInFlight.current) return;
@@ -188,6 +192,7 @@ export function useKeyboardShortcuts(args: UseKeyboardShortcutsArgs): void {
       },
 
       [SHORTCUTS.moveToReady.key]: () => {
+        if (!canMutate) return;
         if (activeTab !== "discovered") return;
         if (shortcutActionInFlight.current) return;
 

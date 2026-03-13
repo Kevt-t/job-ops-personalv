@@ -446,11 +446,6 @@ export const settingsRegistry = {
     envKey: "ADZUNA_APP_ID",
     schema: z.string().trim().max(200),
   },
-  basicAuthUser: {
-    kind: "string" as const,
-    envKey: "BASIC_AUTH_USER",
-    schema: z.string().trim().max(200),
-  },
 
   // --- Secrets ---
   llmApiKey: {
@@ -473,11 +468,6 @@ export const settingsRegistry = {
     envKey: "ADZUNA_APP_KEY",
     schema: z.string().trim().max(2000),
   },
-  basicAuthPassword: {
-    kind: "secret" as const,
-    envKey: "BASIC_AUTH_PASSWORD",
-    schema: z.string().trim().max(2000),
-  },
   webhookSecret: {
     kind: "secret" as const,
     envKey: "WEBHOOK_SECRET",
@@ -489,12 +479,6 @@ export const settingsRegistry = {
     kind: "alias" as const,
     schema: z.string().trim().max(100),
     target: "searchCities" as const,
-  },
-
-  // --- Virtual ---
-  enableBasicAuth: {
-    kind: "virtual" as const,
-    schema: z.boolean(),
   },
 } as const;
 
