@@ -153,7 +153,6 @@ export interface Job {
   tailoredSkills: string | null; // Generated resume skills (JSON)
   selectedProjectIds: string | null; // Comma-separated IDs of selected projects
   pdfPath: string | null; // Path to generated PDF
-  tracerLinksEnabled: boolean; // Rewrite outbound resume links to tracer links on next PDF generation
 
   // JobSpy fields (nullable for non-JobSpy sources)
   jobType: string | null;
@@ -306,6 +305,5 @@ export interface UpdateJobInput {
   tailoredSkills?: string;
   selectedProjectIds?: string;
   pdfPath?: string;
-  tracerLinksEnabled?: boolean;
   appliedAt?: string;
 }

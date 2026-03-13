@@ -17,7 +17,6 @@ import { InProgressBoardPage } from "./pages/InProgressBoardPage";
 import { JobPage } from "./pages/JobPage";
 import { OrchestratorPage } from "./pages/OrchestratorPage";
 import { SettingsPage } from "./pages/SettingsPage";
-import { TracerLinksPage } from "./pages/TracerLinksPage";
 
 /** Backwards-compatibility redirects: old URL paths -> new URL paths */
 const REDIRECTS: Array<{ from: string; to: string }> = [
@@ -134,7 +133,6 @@ export const App: React.FC = () => {
                   element={<InProgressBoardPage />}
                 />
                 <Route path="/settings" element={<SettingsPage />} />
-                <Route path="/tracer-links" element={<TracerLinksPage />} />
                 <Route path="/jobs/:tab" element={<OrchestratorPage />} />
                 <Route
                   path="/jobs/:tab/:jobId"

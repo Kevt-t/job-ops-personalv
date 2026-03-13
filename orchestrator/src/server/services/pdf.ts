@@ -33,9 +33,7 @@ export interface TailoredPdfContent {
 }
 
 export interface GeneratePdfOptions {
-  tracerLinksEnabled?: boolean;
   requestOrigin?: string | null;
-  tracerCompanyName?: string | null;
 }
 
 /**
@@ -108,11 +106,6 @@ export async function generatePdf(
         jobDescription,
         selectedProjectIds,
         jobId,
-        tracerLinks: {
-          enabled: Boolean(options?.tracerLinksEnabled),
-          requestOrigin: options?.requestOrigin ?? null,
-          companyName: options?.tracerCompanyName ?? null,
-        },
       });
       preparedResumeData = prepared.data;
     } catch (err) {

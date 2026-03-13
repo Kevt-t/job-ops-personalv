@@ -19,7 +19,6 @@ import {
   real,
   sqliteTable,
   text,
-  uniqueIndex,
 } from "drizzle-orm/sqlite-core";
 
 export const jobs = sqliteTable("jobs", {
@@ -92,9 +91,6 @@ export const jobs = sqliteTable("jobs", {
   tailoredSkills: text("tailored_skills"),
   selectedProjectIds: text("selected_project_ids"),
   pdfPath: text("pdf_path"),
-  tracerLinksEnabled: integer("tracer_links_enabled", { mode: "boolean" })
-    .notNull()
-    .default(false),
 
   // Timestamps
   discoveredAt: text("discovered_at").notNull().default(sql`(datetime('now'))`),
@@ -245,65 +241,6 @@ export const settings = sqliteTable("settings", {
   updatedAt: text("updated_at").notNull().default(sql`(datetime('now'))`),
 });
 
-export const tracerLinks = sqliteTable(
-  "tracer_links",
-  {
-    id: text("id").primaryKey(),
-    token: text("token").notNull().unique(),
-    jobId: text("job_id")
-      .notNull()
-      .references(() => jobs.id, { onDelete: "cascade" }),
-    sourcePath: text("source_path").notNull(),
-    sourceLabel: text("source_label").notNull(),
-    destinationUrl: text("destination_url").notNull(),
-    destinationUrlHash: text("destination_url_hash").notNull(),
-    isActive: integer("is_active", { mode: "boolean" }).notNull().default(true),
-    createdAt: text("created_at").notNull().default(sql`(datetime('now'))`),
-    updatedAt: text("updated_at").notNull().default(sql`(datetime('now'))`),
-  },
-  (table) => ({
-    jobPathDestinationUnique: uniqueIndex(
-      "idx_tracer_links_job_source_destination_unique",
-    ).on(table.jobId, table.sourcePath, table.destinationUrlHash),
-    jobIndex: index("idx_tracer_links_job_id").on(table.jobId),
-  }),
-);
-
-export const tracerClickEvents = sqliteTable(
-  "tracer_click_events",
-  {
-    id: text("id").primaryKey(),
-    tracerLinkId: text("tracer_link_id")
-      .notNull()
-      .references(() => tracerLinks.id, { onDelete: "cascade" }),
-    clickedAt: integer("clicked_at", { mode: "number" }).notNull(),
-    requestId: text("request_id"),
-    isLikelyBot: integer("is_likely_bot", { mode: "boolean" })
-      .notNull()
-      .default(false),
-    deviceType: text("device_type").notNull().default("unknown"),
-    uaFamily: text("ua_family").notNull().default("unknown"),
-    osFamily: text("os_family").notNull().default("unknown"),
-    referrerHost: text("referrer_host"),
-    ipHash: text("ip_hash"),
-    uniqueFingerprintHash: text("unique_fingerprint_hash"),
-  },
-  (table) => ({
-    tracerLinkIndex: index("idx_tracer_click_events_tracer_link_id").on(
-      table.tracerLinkId,
-    ),
-    clickedAtIndex: index("idx_tracer_click_events_clicked_at").on(
-      table.clickedAt,
-    ),
-    botIndex: index("idx_tracer_click_events_is_likely_bot").on(
-      table.isLikelyBot,
-    ),
-    uniqueFingerprintIndex: index(
-      "idx_tracer_click_events_unique_fingerprint_hash",
-    ).on(table.uniqueFingerprintHash),
-  }),
-);
-
 export type JobRow = typeof jobs.$inferSelect;
 export type NewJobRow = typeof jobs.$inferInsert;
 export type StageEventRow = typeof stageEvents.$inferSelect;
@@ -322,7 +259,3 @@ export type JobChatRunRow = typeof jobChatRuns.$inferSelect;
 export type NewJobChatRunRow = typeof jobChatRuns.$inferInsert;
 export type SettingsRow = typeof settings.$inferSelect;
 export type NewSettingsRow = typeof settings.$inferInsert;
-export type TracerLinkRow = typeof tracerLinks.$inferSelect;
-export type NewTracerLinkRow = typeof tracerLinks.$inferInsert;
-export type TracerClickEventRow = typeof tracerClickEvents.$inferSelect;
-export type NewTracerClickEventRow = typeof tracerClickEvents.$inferInsert;

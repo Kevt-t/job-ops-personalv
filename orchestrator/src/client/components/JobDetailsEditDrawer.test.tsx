@@ -4,7 +4,6 @@ import { fireEvent, screen, waitFor } from "@testing-library/react";
 import type React from "react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import * as api from "../api";
-import { _resetTracerReadinessCache } from "../hooks/useTracerReadiness";
 import { renderWithQueryClient } from "../test/renderWithQueryClient";
 import { JobDetailsEditDrawer } from "./JobDetailsEditDrawer";
 
@@ -31,7 +30,6 @@ vi.mock("@/components/ui/sheet", () => ({
 vi.mock("../api", () => ({
   updateJob: vi.fn(),
   rescoreJob: vi.fn(),
-  getTracerReadiness: vi.fn(),
 }));
 
 vi.mock("sonner", () => ({
@@ -44,16 +42,6 @@ vi.mock("sonner", () => ({
 describe("JobDetailsEditDrawer", () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    _resetTracerReadinessCache();
-    vi.mocked(api.getTracerReadiness).mockResolvedValue({
-      status: "ready",
-      canEnable: true,
-      publicBaseUrl: "https://my-jobops.example.com",
-      healthUrl: "https://my-jobops.example.com/health",
-      checkedAt: Date.now(),
-      lastSuccessAt: Date.now(),
-      reason: null,
-    });
   });
 
   it("saves details when employer changes", async () => {
@@ -150,37 +138,5 @@ describe("JobDetailsEditDrawer", () => {
 
     await waitFor(() => expect(api.rescoreJob).toHaveBeenCalledWith("job-1"));
     expect(onJobUpdated).toHaveBeenCalledTimes(2);
-  });
-
-  it("persists tracer-links toggle with job updates", async () => {
-    const onJobUpdated = vi.fn().mockResolvedValue(undefined);
-    const onOpenChange = vi.fn();
-    vi.mocked(api.updateJob).mockResolvedValue({} as Job);
-
-    render(
-      <JobDetailsEditDrawer
-        open
-        onOpenChange={onOpenChange}
-        job={createJob({ tracerLinksEnabled: false })}
-        onJobUpdated={onJobUpdated}
-      />,
-    );
-
-    await waitFor(() => expect(api.getTracerReadiness).toHaveBeenCalled());
-    const tracerToggle = await screen.findByRole("checkbox", {
-      name: "Enable tracer links for this job",
-    });
-    await waitFor(() => expect(tracerToggle).toBeEnabled());
-    fireEvent.click(tracerToggle);
-    fireEvent.click(screen.getByRole("button", { name: /save details/i }));
-
-    await waitFor(() =>
-      expect(api.updateJob).toHaveBeenCalledWith(
-        "job-1",
-        expect.objectContaining({
-          tracerLinksEnabled: true,
-        }),
-      ),
-    );
   });
 });

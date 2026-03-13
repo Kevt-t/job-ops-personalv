@@ -58,7 +58,6 @@ describe("Tailoring Flow", () => {
       "project-a,project-c", // The manually selected projects
       expect.objectContaining({
         requestOrigin: null,
-        tracerLinksEnabled: undefined,
       }),
     );
   });
@@ -92,7 +91,6 @@ describe("Tailoring Flow", () => {
       undefined, // No projects selected
       expect.objectContaining({
         requestOrigin: null,
-        tracerLinksEnabled: undefined,
       }),
     );
   });

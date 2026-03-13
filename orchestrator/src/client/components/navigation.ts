@@ -2,7 +2,6 @@ import {
   Columns3,
   Home,
   LayoutDashboard,
-  Link2,
   Settings,
 } from "lucide-react";
 
@@ -31,12 +30,6 @@ export const NAV_LINKS: NavLink[] = [
     label: "In Progress",
     icon: Columns3,
     activePaths: ["/applications/in-progress"],
-  },
-  {
-    to: "/tracer-links",
-    label: "Tracer Links",
-    icon: Link2,
-    activePaths: ["/tracer-links"],
   },
   { to: "/settings", label: "Settings", icon: Settings },
 ];

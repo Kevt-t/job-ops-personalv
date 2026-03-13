@@ -32,7 +32,6 @@ const sidebars: SidebarsConfig = {
         "features/reactive-resume",
         "features/in-progress-board",
         "features/ghostwriter",
-        "features/tracer-links",
       ],
     },
     {

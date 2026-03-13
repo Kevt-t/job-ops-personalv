@@ -2,7 +2,6 @@ import * as api from "@client/api";
 import { PageHeader } from "@client/components/layout";
 import { useUpdateSettingsMutation } from "@client/hooks/queries/useSettingsMutation";
 import { useRxResumeConfigState } from "@client/hooks/useRxResumeConfigState";
-import { useTracerReadiness } from "@client/hooks/useTracerReadiness";
 import {
   coerceRxResumeMode,
   getRxResumeCredentialDrafts,
@@ -17,7 +16,6 @@ import { EnvironmentSettingsSection } from "@client/pages/settings/components/En
 import { ModelSettingsSection } from "@client/pages/settings/components/ModelSettingsSection";
 import { ReactiveResumeSection } from "@client/pages/settings/components/ReactiveResumeSection";
 import { ScoringSettingsSection } from "@client/pages/settings/components/ScoringSettingsSection";
-import { TracerLinksSettingsSection } from "@client/pages/settings/components/TracerLinksSettingsSection";
 import { WebhooksSection } from "@client/pages/settings/components/WebhooksSection";
 import {
   type LlmProviderId,
@@ -369,12 +367,6 @@ export const SettingsPage: React.FC = () => {
   // Backup state
   const [isCreatingBackup, setIsCreatingBackup] = useState(false);
   const [isDeletingBackup, setIsDeletingBackup] = useState(false);
-  const {
-    readiness: tracerReadiness,
-    isLoading: isTracerReadinessLoading,
-    isChecking: isTracerReadinessChecking,
-    refreshReadiness,
-  } = useTracerReadiness();
 
   const methods = useForm<UpdateSettingsInput>({
     resolver: zodResolver(
@@ -555,28 +547,6 @@ export const SettingsPage: React.FC = () => {
       setIsDeletingBackup(false);
     }
   };
-
-  const handleVerifyTracerReadiness = useCallback(async () => {
-    try {
-      const readiness = await refreshReadiness(true);
-      if (!readiness) {
-        toast.error("Tracer links are unavailable. Verify your public URL.");
-      } else if (readiness.canEnable) {
-        toast.success("Tracer links are ready");
-      } else {
-        toast.error(
-          readiness.reason ??
-            "Tracer links are unavailable. Verify your public URL.",
-        );
-      }
-    } catch (error) {
-      const message =
-        error instanceof Error
-          ? error.message
-          : "Failed to verify tracer-link readiness";
-      toast.error(message);
-    }
-  }, [refreshReadiness]);
 
   const validateRxresumeMode = useCallback(
     async (
@@ -968,12 +938,6 @@ export const SettingsPage: React.FC = () => {
             isProjectsLoading={isFetchingRxResumeProjects}
             isLoading={isLoading}
             isSaving={isSaving}
-          />
-          <TracerLinksSettingsSection
-            readiness={tracerReadiness}
-            isLoading={isLoading || isTracerReadinessLoading}
-            isChecking={isTracerReadinessChecking}
-            onVerifyNow={handleVerifyTracerReadiness}
           />
           <ChatSettingsSection
             values={chat}

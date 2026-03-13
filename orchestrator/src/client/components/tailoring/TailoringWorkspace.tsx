@@ -1,6 +1,5 @@
 import * as api from "@client/api";
 import { useProfile } from "@client/hooks/useProfile";
-import { useTracerReadiness } from "@client/hooks/useTracerReadiness";
 import type { Job } from "@shared/types.js";
 import { ArrowLeft, Check, FileText, Loader2, Sparkles } from "lucide-react";
 import type React from "react";
@@ -79,8 +78,6 @@ export const TailoringWorkspace: React.FC<TailoringWorkspaceProps> = (
     setJobDescription,
     selectedIds,
     selectedIdsCsv,
-    tracerLinksEnabled,
-    setTracerLinksEnabled,
     skillsDraft,
     setSkillsDraft,
     openSkillGroupId,
@@ -102,8 +99,6 @@ export const TailoringWorkspace: React.FC<TailoringWorkspaceProps> = (
   const [isGeneratingPdf, setIsGeneratingPdf] = useState(false);
   const [isGenerating, setIsGenerating] = useState(false);
   const { profile, error: profileError } = useProfile();
-  const { readiness: tracerReadiness, isChecking: isTracerReadinessChecking } =
-    useTracerReadiness();
 
   const originalValues = useMemo(() => {
     const skillsDraft = toEditableSkillGroups(getOriginalSkills(profile));
@@ -131,14 +126,6 @@ export const TailoringWorkspace: React.FC<TailoringWorkspaceProps> = (
     props.job.tailoredSkills,
   ]);
 
-  const tracerEnableBlocked =
-    !tracerLinksEnabled && !tracerReadiness?.canEnable;
-  const tracerEnableBlockedReason =
-    tracerReadiness?.canEnable === false
-      ? (tracerReadiness.reason ??
-        "Verify tracer links in Settings before enabling this job.")
-      : null;
-
   const savePayload = useMemo(
     () => ({
       tailoredSummary: summary,
@@ -146,7 +133,6 @@ export const TailoringWorkspace: React.FC<TailoringWorkspaceProps> = (
       tailoredSkills: skillsJson,
       jobDescription,
       selectedProjectIds: selectedIdsCsv,
-      tracerLinksEnabled,
     }),
     [
       summary,
@@ -154,7 +140,6 @@ export const TailoringWorkspace: React.FC<TailoringWorkspaceProps> = (
       skillsJson,
       jobDescription,
       selectedIdsCsv,
-      tracerLinksEnabled,
     ],
   );
 
@@ -330,10 +315,6 @@ export const TailoringWorkspace: React.FC<TailoringWorkspaceProps> = (
       jobDescription,
       skillsDraft,
       selectedIds,
-      tracerLinksEnabled,
-      tracerEnableBlocked,
-      tracerEnableBlockedReason,
-      tracerReadinessChecking: isTracerReadinessChecking,
       openSkillGroupId,
       disableInputs,
       onSummaryChange: setSummary,
@@ -362,7 +343,6 @@ export const TailoringWorkspace: React.FC<TailoringWorkspaceProps> = (
       onUpdateSkillGroup: handleUpdateSkillGroup,
       onRemoveSkillGroup: handleRemoveSkillGroup,
       onToggleProject: handleToggleProject,
-      onTracerLinksEnabledChange: setTracerLinksEnabled,
     }),
     [
       catalog,
@@ -372,10 +352,6 @@ export const TailoringWorkspace: React.FC<TailoringWorkspaceProps> = (
       jobDescription,
       skillsDraft,
       selectedIds,
-      tracerLinksEnabled,
-      tracerEnableBlocked,
-      tracerEnableBlockedReason,
-      isTracerReadinessChecking,
       openSkillGroupId,
       disableInputs,
       setSummary,
@@ -396,7 +372,6 @@ export const TailoringWorkspace: React.FC<TailoringWorkspaceProps> = (
       handleUpdateSkillGroup,
       handleRemoveSkillGroup,
       handleToggleProject,
-      setTracerLinksEnabled,
     ],
   );
 

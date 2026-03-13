@@ -1,10 +1,6 @@
 import { getSetting } from "@server/repositories/settings";
 import { pickProjectIdsForJob } from "@server/services/projectSelection";
 import { resolveResumeProjectsSettings } from "@server/services/resumeProjects";
-import {
-  resolveTracerPublicBaseUrl,
-  rewriteResumeLinksWithTracer,
-} from "@server/services/tracer-links";
 import { settingsRegistry } from "@shared/settings-registry";
 import type { ResumeProjectCatalogItem, RxResumeMode } from "@shared/types";
 import { RxResumeClient } from "./client";
@@ -397,11 +393,6 @@ export async function prepareTailoredResumeForPdf(args: {
   };
   jobDescription: string;
   selectedProjectIds?: string | null;
-  tracerLinks?: {
-    enabled: boolean;
-    requestOrigin?: string | null;
-    companyName?: string | null;
-  };
   forceVisibleProjectsSection?: boolean;
   jobId?: string;
 }): Promise<PreparedRxResumePdfPayload> {
@@ -459,29 +450,6 @@ export async function prepareTailoredResumeForPdf(args: {
     selectedProjectIds: new Set(selectedIds),
     forceVisibleProjectsSection: args.forceVisibleProjectsSection,
   });
-
-  if (args.tracerLinks?.enabled) {
-    const tracerBaseUrl = resolveTracerPublicBaseUrl({
-      requestOrigin: args.tracerLinks.requestOrigin,
-    });
-    if (!tracerBaseUrl) {
-      throw new Error(
-        "Tracer links are enabled but no public base URL is available. Set JOBOPS_PUBLIC_BASE_URL.",
-      );
-    }
-    if (!args.jobId) {
-      throw new Error(
-        "Tracer links are enabled but jobId was not provided for resume tailoring.",
-      );
-    }
-
-    await rewriteResumeLinksWithTracer({
-      jobId: args.jobId,
-      resumeData: workingCopy,
-      publicBaseUrl: tracerBaseUrl,
-      companyName: args.tracerLinks.companyName ?? null,
-    });
-  }
 
   return {
     mode,

@@ -58,9 +58,8 @@ At this stage:
 
 1. Open job details.
 2. Open the **search links** row when you want quick external research on LinkedIn, GitHub, or the wider web.
-3. Optionally enable tracer links for that specific job.
-4. Download the tailored PDF.
-5. Submit your application externally.
+3. Download the tailored PDF.
+4. Submit your application externally.
 
 ### 5) Mark jobs as applied in JobOps
 
@@ -87,8 +86,6 @@ Once a job is marked `applied`, it becomes part of:
 - Increase tailored-job count only after score thresholds feel calibrated.
 - Expect scraper runtime variance by source.
 - Keep resume/project context up to date so scoring/tailoring quality stays high.
-- Use per-job tracer links when you want measurable outbound-link analytics.
-- If you use tracer links, review the risk note in [Tracer Links](../features/tracer-links): some recipients/security tools may treat redirects as suspicious.
 
 ## Related pages
 

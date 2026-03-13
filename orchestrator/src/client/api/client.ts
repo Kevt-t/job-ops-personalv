@@ -22,7 +22,6 @@ import type {
   JobSource,
   JobsListResponse,
   JobsRevisionResponse,
-  JobTracerLinksResponse,
   ManualJobDraft,
   ManualJobFetchResponse,
   ManualJobInferenceResponse,
@@ -34,8 +33,6 @@ import type {
   StageEvent,
   StageEventMetadata,
   StageTransitionTarget,
-  TracerAnalyticsResponse,
-  TracerReadinessResponse,
   ValidationResult,
 } from "@shared/types";
 import { showDemoBlockedToast, showDemoSimulatedToast } from "@/lib/demo-toast";
@@ -390,69 +387,6 @@ export async function updateJob(
     method: "PATCH",
     body: JSON.stringify(update),
   });
-}
-
-export async function getTracerAnalytics(options?: {
-  jobId?: string;
-  from?: number;
-  to?: number;
-  includeBots?: boolean;
-  limit?: number;
-}): Promise<TracerAnalyticsResponse> {
-  const params = new URLSearchParams();
-  if (options?.jobId) params.set("jobId", options.jobId);
-  if (typeof options?.from === "number") {
-    params.set("from", String(options.from));
-  }
-  if (typeof options?.to === "number") {
-    params.set("to", String(options.to));
-  }
-  if (typeof options?.includeBots === "boolean") {
-    params.set("includeBots", options.includeBots ? "1" : "0");
-  }
-  if (typeof options?.limit === "number") {
-    params.set("limit", String(options.limit));
-  }
-
-  const query = params.toString();
-  return fetchApi<TracerAnalyticsResponse>(
-    `/tracer-links/analytics${query ? `?${query}` : ""}`,
-  );
-}
-
-export async function getTracerReadiness(options?: {
-  force?: boolean;
-}): Promise<TracerReadinessResponse> {
-  const params = new URLSearchParams();
-  if (options?.force) params.set("force", "1");
-  const query = params.toString();
-  return fetchApi<TracerReadinessResponse>(
-    `/tracer-links/readiness${query ? `?${query}` : ""}`,
-  );
-}
-
-export async function getJobTracerLinks(
-  jobId: string,
-  options?: {
-    from?: number;
-    to?: number;
-    includeBots?: boolean;
-  },
-): Promise<JobTracerLinksResponse> {
-  const params = new URLSearchParams();
-  if (typeof options?.from === "number") {
-    params.set("from", String(options.from));
-  }
-  if (typeof options?.to === "number") {
-    params.set("to", String(options.to));
-  }
-  if (typeof options?.includeBots === "boolean") {
-    params.set("includeBots", options.includeBots ? "1" : "0");
-  }
-  const query = params.toString();
-  return fetchApi<JobTracerLinksResponse>(
-    `/tracer-links/jobs/${encodeURIComponent(jobId)}${query ? `?${query}` : ""}`,
-  );
 }
 
 async function streamSseEvents<TEvent>(
