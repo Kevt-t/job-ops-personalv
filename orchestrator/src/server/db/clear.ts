@@ -2,58 +2,56 @@
  * Database utility scripts.
  */
 
-import { existsSync, unlinkSync } from "node:fs";
-import { join } from "node:path";
-import Database from "better-sqlite3";
-import { getDataDir } from "../config/dataDir";
-
-// Database path - can be overridden via env for Docker
-const DB_PATH = join(getDataDir(), "jobs.db");
+import { count, sql } from "drizzle-orm";
+import { closeDb, db, schema } from "./index";
 
 /**
- * Clear all data from the database (keeps the schema intact).
+ * Clear job and pipeline data from the database while preserving settings/auth.
  */
-export function clearDatabase(): { jobsDeleted: number; runsDeleted: number } {
-  const sqlite = new Database(DB_PATH);
+export async function clearDatabase(): Promise<{
+  jobsDeleted: number;
+  runsDeleted: number;
+}> {
+  const [[jobCount], [runCount]] = await Promise.all([
+    db.select({ value: count(schema.jobs.id) }).from(schema.jobs),
+    db.select({ value: count(schema.pipelineRuns.id) }).from(schema.pipelineRuns),
+  ]);
 
-  try {
-    sqlite.prepare("DELETE FROM stage_events").run();
-    sqlite.prepare("DELETE FROM tasks").run();
-    sqlite.prepare("DELETE FROM interviews").run();
-    const jobsResult = sqlite.prepare("DELETE FROM jobs").run();
-    const runsResult = sqlite.prepare("DELETE FROM pipeline_runs").run();
+  await db.execute(sql`DELETE FROM pipeline_runs`);
+  await db.execute(sql`DELETE FROM jobs`);
 
-    console.log(
-      `🗑️ Cleared database: ${jobsResult.changes} jobs, ${runsResult.changes} pipeline runs`,
-    );
-    return {
-      jobsDeleted: jobsResult.changes,
-      runsDeleted: runsResult.changes,
-    };
-  } finally {
-    sqlite.close();
-  }
+  const jobsDeleted = jobCount?.value ?? 0;
+  const runsDeleted = runCount?.value ?? 0;
+
+  console.log(
+    `Cleared database: ${jobsDeleted} jobs, ${runsDeleted} pipeline runs`,
+  );
+
+  return {
+    jobsDeleted,
+    runsDeleted,
+  };
 }
 
 /**
- * Delete database file completely (will recreate on next run).
+ * Drop and recreate the public schema for the current database.
  */
-export function dropDatabase(): void {
-  if (existsSync(DB_PATH)) {
-    unlinkSync(DB_PATH);
-    console.log("🗑️ Database file deleted");
-  } else {
-    console.log("ℹ️ No database file to delete");
-  }
+export async function dropDatabase(): Promise<void> {
+  await db.execute(sql.raw("DROP SCHEMA IF EXISTS public CASCADE"));
+  await db.execute(sql.raw("CREATE SCHEMA public"));
+  console.log("Database schema dropped");
 }
 
-// CLI execution
 if (process.argv[1]?.includes("clear.ts")) {
   const arg = process.argv[2];
 
-  if (arg === "--drop") {
-    dropDatabase();
-  } else {
-    clearDatabase();
+  try {
+    if (arg === "--drop") {
+      await dropDatabase();
+    } else {
+      await clearDatabase();
+    }
+  } finally {
+    await closeDb();
   }
 }

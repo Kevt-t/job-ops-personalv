@@ -5,7 +5,7 @@ import { startServer, stopServer } from "./test-utils";
 describe.sequential("Pipeline API routes", () => {
   let server: Server;
   let baseUrl: string;
-  let closeDb: () => void;
+  let closeDb: () => Promise<void>;
   let tempDir: string;
 
   beforeEach(async () => {

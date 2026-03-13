@@ -71,7 +71,7 @@ docker compose up -d
 * **Universal Scraping**: Supports **LinkedIn, Indeed, Glassdoor, Adzuna, Hiring Café**.
 * **AI Scoring**: Ranks jobs by fit against *your* profile using your preferred LLM (OpenAI, OpenRouter, `openai-compatible` endpoints such as LM Studio/Ollama, Gemini).
 * **Auto-Tailoring**: Generates custom resumes (PDFs) for every application using RxResume v4.
-* **Self-Hosted**: Your data stays with you. SQLite database. No SaaS fees.
+* **Self-Hosted**: Your data stays with you. PostgreSQL-backed, with Neon-compatible hosting support. No SaaS fees.
 
 ## Workflow
 

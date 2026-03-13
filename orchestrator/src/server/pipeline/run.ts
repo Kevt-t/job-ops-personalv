@@ -31,12 +31,11 @@ async function main() {
   console.log(`   Completed at: ${new Date().toISOString()}`);
   console.log("=".repeat(60));
 
-  closeDb();
+  await closeDb();
   process.exit(result.success ? 0 : 1);
 }
 
 main().catch((error) => {
   console.error("Fatal error:", error);
-  closeDb();
-  process.exit(1);
+  void closeDb().finally(() => process.exit(1));
 });

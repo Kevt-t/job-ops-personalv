@@ -4,6 +4,19 @@
 // learn more: https://github.com/testing-library/jest-dom
 import "@testing-library/jest-dom";
 
+if (!process.env.NODE_ENV) {
+  process.env.NODE_ENV = "test";
+}
+
+if (!process.env.DATABASE_URL) {
+  process.env.DATABASE_URL = "postgresql://jobops:jobops@127.0.0.1:5432/postgres";
+}
+
+if (!process.env.TEST_DATABASE_ADMIN_URL) {
+  process.env.TEST_DATABASE_ADMIN_URL =
+    "postgresql://jobops:jobops@127.0.0.1:5432/postgres";
+}
+
 if (typeof globalThis.ResizeObserver === "undefined") {
   class ResizeObserver {
     observe() {}

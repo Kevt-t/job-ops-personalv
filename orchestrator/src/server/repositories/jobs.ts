@@ -11,7 +11,7 @@ import type {
   JobsRevisionResponse,
   UpdateJobInput,
 } from "@shared/types";
-import { and, desc, eq, inArray, isNull, lt, ne, sql } from "drizzle-orm";
+import { and, count, desc, eq, inArray, isNull, lt, ne, sql } from "drizzle-orm";
 import { db, schema } from "../db/index";
 
 const { jobs } = schema;
@@ -101,7 +101,7 @@ export async function getJobsRevision(
   const baseQuery = db
     .select({
       latestUpdatedAt: sql<string | null>`max(${jobs.updatedAt})`,
-      total: sql<number>`count(*)`,
+      total: count(),
     })
     .from(jobs);
   const [row] = whereClause
@@ -167,53 +167,61 @@ async function insertJob(input: CreateJobInput): Promise<Job> {
   const id = randomUUID();
   const now = new Date().toISOString();
 
-  await db.insert(jobs).values({
-    id,
-    source: input.source,
-    sourceJobId: input.sourceJobId ?? null,
-    jobUrlDirect: input.jobUrlDirect ?? null,
-    datePosted: input.datePosted ?? null,
-    title: input.title,
-    employer: input.employer,
-    employerUrl: input.employerUrl ?? null,
-    jobUrl: input.jobUrl,
-    applicationLink: input.applicationLink ?? null,
-    disciplines: input.disciplines ?? null,
-    deadline: input.deadline ?? null,
-    salary: input.salary ?? null,
-    location: input.location ?? null,
-    degreeRequired: input.degreeRequired ?? null,
-    starting: input.starting ?? null,
-    jobDescription: input.jobDescription ?? null,
-    jobType: input.jobType ?? null,
-    salarySource: input.salarySource ?? null,
-    salaryInterval: input.salaryInterval ?? null,
-    salaryMinAmount: input.salaryMinAmount ?? null,
-    salaryMaxAmount: input.salaryMaxAmount ?? null,
-    salaryCurrency: input.salaryCurrency ?? null,
-    isRemote: input.isRemote ?? null,
-    jobLevel: input.jobLevel ?? null,
-    jobFunction: input.jobFunction ?? null,
-    listingType: input.listingType ?? null,
-    emails: input.emails ?? null,
-    companyIndustry: input.companyIndustry ?? null,
-    companyLogo: input.companyLogo ?? null,
-    companyUrlDirect: input.companyUrlDirect ?? null,
-    companyAddresses: input.companyAddresses ?? null,
-    companyNumEmployees: input.companyNumEmployees ?? null,
-    companyRevenue: input.companyRevenue ?? null,
-    companyDescription: input.companyDescription ?? null,
-    skills: input.skills ?? null,
-    experienceRange: input.experienceRange ?? null,
-    companyRating: input.companyRating ?? null,
-    companyReviewsCount: input.companyReviewsCount ?? null,
-    vacancyCount: input.vacancyCount ?? null,
-    workFromHomeType: input.workFromHomeType ?? null,
-    status: "discovered",
-    discoveredAt: now,
-    createdAt: now,
-    updatedAt: now,
-  });
+  const inserted = await db
+    .insert(jobs)
+    .values({
+      id,
+      source: input.source,
+      sourceJobId: input.sourceJobId ?? null,
+      jobUrlDirect: input.jobUrlDirect ?? null,
+      datePosted: input.datePosted ?? null,
+      title: input.title,
+      employer: input.employer,
+      employerUrl: input.employerUrl ?? null,
+      jobUrl: input.jobUrl,
+      applicationLink: input.applicationLink ?? null,
+      disciplines: input.disciplines ?? null,
+      deadline: input.deadline ?? null,
+      salary: input.salary ?? null,
+      location: input.location ?? null,
+      degreeRequired: input.degreeRequired ?? null,
+      starting: input.starting ?? null,
+      jobDescription: input.jobDescription ?? null,
+      jobType: input.jobType ?? null,
+      salarySource: input.salarySource ?? null,
+      salaryInterval: input.salaryInterval ?? null,
+      salaryMinAmount: input.salaryMinAmount ?? null,
+      salaryMaxAmount: input.salaryMaxAmount ?? null,
+      salaryCurrency: input.salaryCurrency ?? null,
+      isRemote: input.isRemote ?? null,
+      jobLevel: input.jobLevel ?? null,
+      jobFunction: input.jobFunction ?? null,
+      listingType: input.listingType ?? null,
+      emails: input.emails ?? null,
+      companyIndustry: input.companyIndustry ?? null,
+      companyLogo: input.companyLogo ?? null,
+      companyUrlDirect: input.companyUrlDirect ?? null,
+      companyAddresses: input.companyAddresses ?? null,
+      companyNumEmployees: input.companyNumEmployees ?? null,
+      companyRevenue: input.companyRevenue ?? null,
+      companyDescription: input.companyDescription ?? null,
+      skills: input.skills ?? null,
+      experienceRange: input.experienceRange ?? null,
+      companyRating: input.companyRating ?? null,
+      companyReviewsCount: input.companyReviewsCount ?? null,
+      vacancyCount: input.vacancyCount ?? null,
+      workFromHomeType: input.workFromHomeType ?? null,
+      status: "discovered",
+      discoveredAt: now,
+      createdAt: now,
+      updatedAt: now,
+    })
+    .onConflictDoNothing({ target: jobs.jobUrl })
+    .returning({ id: jobs.id });
+
+  if (inserted.length === 0) {
+    throw new Error("Duplicate job URL");
+  }
 
   const job = await getJobById(id);
   if (!job) {
@@ -222,16 +230,13 @@ async function insertJob(input: CreateJobInput): Promise<Job> {
   return job;
 }
 
-function isJobUrlUniqueViolation(error: unknown): boolean {
-  if (!(error instanceof Error)) return false;
-  return /UNIQUE constraint failed: jobs\.job_url/i.test(error.message);
-}
-
 async function tryInsertJob(input: CreateJobInput): Promise<Job | null> {
   try {
     return await insertJob(input);
   } catch (error) {
-    if (isJobUrlUniqueViolation(error)) return null;
+    if (error instanceof Error && error.message === "Duplicate job URL") {
+      return null;
+    }
     throw error;
   }
 }
@@ -342,7 +347,7 @@ export async function getJobStats(): Promise<Record<JobStatus, number>> {
   const result = await db
     .select({
       status: jobs.status,
-      count: sql<number>`count(*)`,
+      count: count(),
     })
     .from(jobs)
     .groupBy(jobs.status);
@@ -404,15 +409,18 @@ export async function getUnscoredDiscoveredJobs(
  * Delete jobs by status.
  */
 export async function deleteJobsByStatus(status: JobStatus): Promise<number> {
-  const result = await db.delete(jobs).where(eq(jobs.status, status)).run();
-  return result.changes;
+  const deleted = await db
+    .delete(jobs)
+    .where(eq(jobs.status, status))
+    .returning({ id: jobs.id });
+  return deleted.length;
 }
 
 /**
  * Delete jobs with suitability score below threshold (excluding applied and in_progress jobs).
  */
 export async function deleteJobsBelowScore(threshold: number): Promise<number> {
-  const result = await db
+  const deleted = await db
     .delete(jobs)
     .where(
       and(
@@ -421,8 +429,8 @@ export async function deleteJobsBelowScore(threshold: number): Promise<number> {
         ne(jobs.status, "in_progress"),
       ),
     )
-    .run();
-  return result.changes;
+    .returning({ id: jobs.id });
+  return deleted.length;
 }
 
 // Helper to map database row to Job type

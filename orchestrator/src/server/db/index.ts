@@ -2,29 +2,25 @@
  * Database connection and initialization.
  */
 
-import { existsSync, mkdirSync } from "node:fs";
-import { dirname, join } from "node:path";
-import Database from "better-sqlite3";
-import { drizzle } from "drizzle-orm/better-sqlite3";
-import { getDataDir } from "../config/dataDir";
+import { logger } from "@infra/logger";
+import { sanitizeUnknown } from "@infra/sanitize";
+import { drizzle } from "drizzle-orm/node-postgres";
+import { Pool } from "pg";
+import { buildPoolConfig } from "./config";
 import * as schema from "./schema";
 
-// Database path - can be overridden via env for Docker
-const DB_PATH = join(getDataDir(), "jobs.db");
+export const pool = new Pool(buildPoolConfig());
 
-// Ensure data directory exists
-const dataDir = dirname(DB_PATH);
-if (!existsSync(dataDir)) {
-  mkdirSync(dataDir, { recursive: true });
-}
+pool.on("error", (error) => {
+  logger.error("Unexpected Postgres pool error", {
+    error: sanitizeUnknown(error),
+  });
+});
 
-const sqlite = new Database(DB_PATH);
-sqlite.pragma("journal_mode = WAL");
-
-export const db = drizzle(sqlite, { schema });
+export const db = drizzle(pool, { schema });
 
 export { schema };
 
-export function closeDb() {
-  sqlite.close();
+export async function closeDb() {
+  await pool.end();
 }

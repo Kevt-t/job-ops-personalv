@@ -1,8 +1,9 @@
 import crypto from "node:crypto";
 import bcrypt from "bcryptjs";
+import { count } from "drizzle-orm";
 import { conflict, forbidden, notFound, unauthorized } from "@infra/errors";
 import type { AuthRole, AuthSessionPayload, AuthUser, CoachAccountSummary } from "@shared/types";
-import { db } from "@server/db/index";
+import { db, schema } from "@server/db/index";
 import * as sessionsRepo from "@server/repositories/sessions";
 import * as usersRepo from "@server/repositories/users";
 import { getSessionMaxAgeMs } from "./auth-cookie";
@@ -53,18 +54,29 @@ export async function register(input: {
   const username = normalizeUsername(input.username);
   const passwordHash = await bcrypt.hash(input.password, 10);
 
-  // Wrap the first-user check and insert in a transaction to prevent
-  // a TOCTOU race where two concurrent requests both pass isFirstUser().
-  const created = db.transaction(() => {
-    const userCount = usersRepo.countUsersSync();
-    if (userCount > 0) {
+  const created = await db.transaction(async (tx) => {
+    const [countRow] = await tx
+      .select({ value: count(schema.users.id) })
+      .from(schema.users);
+
+    if ((countRow?.value ?? 0) > 0) {
       return null;
     }
-    return usersRepo.createUserSync({
-      username,
-      passwordHash,
-      role: "user",
-    });
+
+    const now = new Date().toISOString();
+    const [inserted] = await tx
+      .insert(schema.users)
+      .values({
+        id: crypto.randomUUID(),
+        username,
+        passwordHash,
+        role: "user",
+        createdAt: now,
+        updatedAt: now,
+      })
+      .returning();
+
+    return inserted ?? null;
   });
 
   if (!created) {

@@ -119,7 +119,7 @@ COPY --from=builder /root/.cache/camoufox /root/.cache/camoufox
 
 WORKDIR /app
 # Create data directory
-RUN mkdir -p /app/data/pdfs
+RUN mkdir -p /app/data/pdfs /app/data/backups
 
 EXPOSE 3001
 

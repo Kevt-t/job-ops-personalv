@@ -6,13 +6,15 @@ import { startServer, stopServer } from "./test-utils";
 describe.sequential("Onboarding API routes", () => {
   let server: Server;
   let baseUrl: string;
-  let closeDb: () => void;
+  let closeDb: () => Promise<void>;
   let tempDir: string;
   let originalFetch: typeof global.fetch;
+  let authenticatedFetch: typeof global.fetch;
 
   beforeEach(async () => {
     originalFetch = global.fetch;
     ({ server, baseUrl, closeDb, tempDir } = await startServer());
+    authenticatedFetch = global.fetch;
   });
 
   afterEach(async () => {
@@ -58,7 +60,7 @@ describe.sequential("Onboarding API routes", () => {
             json: async () => ({ error: { message: "invalid api key" } }),
           } as Response);
         }
-        return originalFetch(input, init);
+        return authenticatedFetch(input, init);
       });
       const res = await fetch(`${baseUrl}/api/onboarding/validate/openrouter`, {
         method: "POST",
@@ -96,7 +98,7 @@ describe.sequential("Onboarding API routes", () => {
             }),
           } as Response);
         }
-        return originalFetch(input, init);
+        return authenticatedFetch(input, init);
       });
 
       const res = await fetch(`${baseUrl}/api/onboarding/validate/llm`, {
@@ -138,7 +140,7 @@ describe.sequential("Onboarding API routes", () => {
             json: async () => ({ error: { message: "bad local auth" } }),
           } as Response);
         }
-        return originalFetch(input, init);
+        return authenticatedFetch(input, init);
       });
 
       const res = await fetch(`${baseUrl}/api/onboarding/validate/llm`, {
@@ -182,7 +184,7 @@ describe.sequential("Onboarding API routes", () => {
             json: async () => ({ models: [] }),
           } as Response);
         }
-        return originalFetch(input, init);
+        return authenticatedFetch(input, init);
       });
 
       const res = await fetch(`${baseUrl}/api/onboarding/validate/llm`, {
@@ -228,7 +230,7 @@ describe.sequential("Onboarding API routes", () => {
             json: async () => ({ error: { message: "wrong endpoint used" } }),
           } as Response);
         }
-        return originalFetch(input, init);
+        return authenticatedFetch(input, init);
       });
 
       const res = await fetch(`${baseUrl}/api/onboarding/validate/llm`, {
@@ -291,7 +293,7 @@ describe.sequential("Onboarding API routes", () => {
             json: async () => ({ error: { message: "stale endpoint used" } }),
           } as Response);
         }
-        return originalFetch(input, init);
+        return authenticatedFetch(input, init);
       });
 
       const res = await fetch(`${baseUrl}/api/onboarding/validate/llm`, {
@@ -402,7 +404,7 @@ describe.sequential("Onboarding API routes", () => {
             json: async () => [],
           } as unknown as Response);
         }
-        return originalFetch(input, init);
+        return authenticatedFetch(input, init);
       });
 
       const res = await fetch(`${baseUrl}/api/onboarding/validate/rxresume`, {

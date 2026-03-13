@@ -26,6 +26,22 @@ jobs:
   tests:
     name: Tests
     runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_DB: jobops
+          POSTGRES_USER: jobops
+          POSTGRES_PASSWORD: jobops
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U jobops -d jobops"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 10
+    env:
+      TEST_DATABASE_ADMIN_URL: postgresql://jobops:jobops@127.0.0.1:5432/postgres
     steps:
       - uses: actions/checkout@v4
       - name: Setup Node
@@ -36,9 +52,6 @@ jobs:
           cache-dependency-path: package-lock.json
       - name: Install dependencies
         run: npm ci --workspaces --include-workspace-root
-        working-directory: .
-      - name: Build better-sqlite3
-        run: npm --workspace orchestrator rebuild better-sqlite3
         working-directory: .
       - name: Run Tests
         run: npm run test:all

@@ -5,7 +5,7 @@ description: Deploy JobOps with Docker Compose and configure onboarding integrat
 sidebar_position: 1
 ---
 
-The easiest way to run JobOps is via Docker Compose. The app is self-configuring and guides you through setup on first launch.
+The easiest way to run JobOps is via Docker Compose. The default stack starts JobOps plus a local PostgreSQL service, and you can swap that database connection to Neon by setting `DATABASE_URL`.
 
 ## Prerequisites
 
@@ -13,13 +13,13 @@ The easiest way to run JobOps is via Docker Compose. The app is self-configuring
 
 ## 1) Start the stack
 
-No environment variables are required to boot:
+No extra environment variables are required to boot the default local stack:
 
 ```bash
 docker compose up -d
 ```
 
-This pulls the pre-built image from GHCR and starts the API, UI, and scrapers in one container.
+This pulls the pre-built image from GHCR and starts the API, UI, scrapers, and a local PostgreSQL container.
 
 To build locally instead:
 
@@ -39,14 +39,22 @@ The onboarding wizard helps you validate and save:
 2. **PDF Export**: RxResume credentials for PDF generation.
 3. **Template Resume**: Choose a base resume from your RxResume account.
 
-Settings are saved to the local database.
+Settings are saved to PostgreSQL.
 
 ## Persistent data
 
-`./data` bind-mount stores:
+Docker named volumes store:
 
-- SQLite DB: `data/jobs.db`
-- Generated PDFs: `data/pdfs/`
+- PostgreSQL data
+- Generated PDFs and backup snapshots under `/app/data`
+
+If you want to use Neon instead of the bundled local database, set:
+
+```env
+DATABASE_URL=postgresql://<user>:<password>@<host>/<database>?sslmode=require
+```
+
+Then restart the stack. JobOps will connect to Neon using that URL.
 
 ## Public demo mode
 

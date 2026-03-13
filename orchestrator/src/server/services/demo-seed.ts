@@ -93,13 +93,13 @@ export function buildDemoBaseline(now: Date): BuiltDemoBaseline {
 export async function applyDemoBaseline(
   baseline: BuiltDemoBaseline,
 ): Promise<void> {
-  db.transaction((tx) => {
-    tx.delete(stageEvents).run();
-    tx.delete(tasks).run();
-    tx.delete(interviews).run();
-    tx.delete(jobs).run();
-    tx.delete(pipelineRuns).run();
-    tx.delete(settings).run();
+  await db.transaction(async (tx) => {
+    await tx.delete(stageEvents);
+    await tx.delete(tasks);
+    await tx.delete(interviews);
+    await tx.delete(jobs);
+    await tx.delete(pipelineRuns);
+    await tx.delete(settings);
 
     const settingRows = Object.entries(baseline.settings).map(
       ([key, value]) => ({
@@ -110,17 +110,17 @@ export async function applyDemoBaseline(
       }),
     );
     if (settingRows.length > 0) {
-      tx.insert(settings).values(settingRows).run();
+      await tx.insert(settings).values(settingRows);
     }
 
     if (baseline.pipelineRuns.length > 0) {
-      tx.insert(pipelineRuns).values(baseline.pipelineRuns).run();
+      await tx.insert(pipelineRuns).values(baseline.pipelineRuns);
     }
     if (baseline.jobs.length > 0) {
-      tx.insert(jobs).values(baseline.jobs).run();
+      await tx.insert(jobs).values(baseline.jobs);
     }
     if (baseline.stageEvents.length > 0) {
-      tx.insert(stageEvents).values(baseline.stageEvents).run();
+      await tx.insert(stageEvents).values(baseline.stageEvents);
     }
   });
 }

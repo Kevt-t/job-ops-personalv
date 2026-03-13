@@ -1,20 +1,24 @@
 import { mkdtemp, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
+import { createTestDatabase } from "@server/db/test-database";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 const originalEnv = { ...process.env };
 
 describe.sequential("envSettings overrides", () => {
   let tempDir: string;
-  let closeDb: (() => void) | null = null;
+  let closeDb: (() => Promise<void>) | null = null;
+  let testDatabase: Awaited<ReturnType<typeof createTestDatabase>>;
 
   beforeEach(async () => {
     vi.resetModules();
     tempDir = await mkdtemp(join(tmpdir(), "job-ops-env-migration-test-"));
+    testDatabase = await createTestDatabase();
     process.env = {
       ...originalEnv,
       DATA_DIR: tempDir,
+      DATABASE_URL: testDatabase.databaseUrl,
       NODE_ENV: "test",
       MODEL: "test-model",
       LLM_API_KEY: "sk-env-default",
@@ -26,7 +30,8 @@ describe.sequential("envSettings overrides", () => {
   });
 
   afterEach(async () => {
-    if (closeDb) closeDb();
+    if (closeDb) await closeDb();
+    await testDatabase.cleanup();
     await rm(tempDir, { recursive: true, force: true });
     process.env = { ...originalEnv };
   });

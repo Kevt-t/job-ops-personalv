@@ -5,7 +5,7 @@ import { startServer, stopServer } from "./test-utils";
 describe.sequential("Jobs API routes", () => {
   let server: Server;
   let baseUrl: string;
-  let closeDb: () => void;
+  let closeDb: () => Promise<void>;
   let tempDir: string;
 
   beforeEach(async () => {
@@ -878,7 +878,7 @@ describe.sequential("Jobs API routes", () => {
           title: "Complete test task",
           isCompleted: false,
         })
-        .run();
+        .execute();
 
       const res2 = await fetch(`${baseUrl}/api/jobs/${jobId}/tasks`);
       const body2 = await res2.json();
@@ -890,7 +890,7 @@ describe.sequential("Jobs API routes", () => {
         .update(tasks)
         .set({ isCompleted: true })
         .where(eq(tasks.id, "task-1"))
-        .run();
+        .execute();
 
       const res3 = await fetch(`${baseUrl}/api/jobs/${jobId}/tasks`);
       const body3 = await res3.json();

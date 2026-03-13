@@ -17,7 +17,7 @@ This page is about database backups:
 
 ## Backup behavior
 
-JobOps stores backups in the same data directory as `jobs.db`.
+JobOps stores backups as gzipped logical snapshots in the app data directory under `backups/`.
 
 Two backup types exist:
 
@@ -27,7 +27,7 @@ Two backup types exist:
 ### Automatic backups
 
 - Scheduled daily.
-- Filename format: `jobs_YYYY_MM_DD.db`
+- Filename format: `jobs_YYYY_MM_DD.json.gz`
 - Schedule hour is configured in Settings (**UTC hour**).
 - Automatic retention is capped by `backupMaxCount`.
 - If today’s automatic backup already exists, JobOps skips creating a duplicate.
@@ -35,7 +35,7 @@ Two backup types exist:
 ### Manual backups
 
 - Triggered from Settings or `POST /api/backups`.
-- Filename format: `jobs_manual_YYYY_MM_DD_HH_MM_SS.db`
+- Filename format: `jobs_manual_YYYY_MM_DD_HH_MM_SS.json.gz`
 - If a filename collision occurs, JobOps appends `_1`, `_2`, etc.
 - Manual backups are **not** auto-deleted by automatic retention cleanup.
 
@@ -62,7 +62,7 @@ curl -X POST "http://localhost:3001/api/backups"
 
 ```bash
 # Delete a specific backup
-curl -X DELETE "http://localhost:3001/api/backups/jobs_manual_2026_02_15_10_20_30.db"
+curl -X DELETE "http://localhost:3001/api/backups/jobs_manual_2026_02_15_10_20_30.json.gz"
 ```
 
 ```bash
@@ -82,15 +82,15 @@ To restore from a backup:
 
 1. Stop JobOps.
 2. Locate backup files in your data directory.
-3. Copy the chosen backup over the main DB file (`jobs.db`).
+3. Run the restore CLI with the backup filename.
 4. Start JobOps.
 5. Verify jobs/runs in the UI.
 
 Example shell flow:
 
 ```bash
-# Example only: adjust paths for your setup
-cp /path/to/data/jobs_manual_2026_02_15_10_20_30.db /path/to/data/jobs.db
+# Example only: adjust filename for your setup
+npm --workspace orchestrator run db:restore -- jobs_manual_2026_02_15_10_20_30.json.gz
 ```
 
 ## Troubleshooting
@@ -103,8 +103,7 @@ cp /path/to/data/jobs_manual_2026_02_15_10_20_30.db /path/to/data/jobs.db
 
 ### `POST /api/backups` fails
 
-- Confirm the data directory and `jobs.db` are writable/readable.
-- Confirm `jobs.db` exists.
+- Confirm the data directory is writable.
 - In demo mode, manual backup creation is blocked.
 
 ### Cannot delete a backup
@@ -120,6 +119,7 @@ cp /path/to/data/jobs_manual_2026_02_15_10_20_30.db /path/to/data/jobs.db
 
 - Backup cleanup applies only to automatic backups.
 - Manual backups stay until you delete them.
+- Snapshot files are database-provider agnostic, so the same backup flow works with local Postgres and Neon.
 
 ## Related pages
 

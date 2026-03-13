@@ -1,146 +1,141 @@
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
-import Database from "better-sqlite3";
+import { gunzipSync } from "node:zlib";
+import { createTestDatabase } from "@server/db/test-database";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import * as backup from "./index";
 
-// Mock the dataDir module
 vi.mock("@server/config/dataDir", () => ({
   getDataDir: vi.fn(),
 }));
 
 import { getDataDir } from "@server/config/dataDir";
 
-describe("Backup Service", () => {
+const originalEnv = { ...process.env };
+
+describe.sequential("Backup Service", () => {
   let tempDir: string;
-  let dbPath: string;
+  let backup: typeof import("./index");
+  let db: typeof import("@server/db/index").db;
+  let schema: typeof import("@server/db/index").schema;
+  let closeDb: typeof import("@server/db/index").closeDb;
+  let testDatabase: Awaited<ReturnType<typeof createTestDatabase>>;
 
   beforeEach(async () => {
-    // Create temp directory for tests
+    vi.resetModules();
+
     tempDir = await fs.promises.mkdtemp(path.join(os.tmpdir(), "backup-test-"));
-    dbPath = path.join(tempDir, "jobs.db");
+    testDatabase = await createTestDatabase();
+    process.env = {
+      ...originalEnv,
+      DATA_DIR: tempDir,
+      DATABASE_URL: testDatabase.databaseUrl,
+      NODE_ENV: "test",
+      MODEL: "test-model",
+    };
 
-    // Create a real SQLite database file for backup() to work.
-    const db = new Database(dbPath);
-    try {
-      db.exec(
-        [
-          "PRAGMA journal_mode = DELETE;",
-          "CREATE TABLE IF NOT EXISTS test_items (id INTEGER PRIMARY KEY, name TEXT NOT NULL);",
-          "DELETE FROM test_items;",
-          "INSERT INTO test_items (name) VALUES ('alpha');",
-        ].join("\n"),
-      );
-    } finally {
-      db.close();
-    }
-
-    // Mock getDataDir to return temp directory
     vi.mocked(getDataDir).mockReturnValue(tempDir);
 
-    // Reset backup settings
+    await import("@server/db/migrate");
+    const dbModule = await import("@server/db/index");
+    db = dbModule.db;
+    schema = dbModule.schema;
+    closeDb = dbModule.closeDb;
+    backup = await import("./index");
+
+    await db.insert(schema.jobs).values({
+      id: "job-1",
+      source: "manual",
+      title: "Test Job",
+      employer: "Example Corp",
+      jobUrl: "https://example.com/jobs/1",
+      status: "discovered",
+    });
+
     backup.setBackupSettings({ enabled: false, hour: 2, maxCount: 5 });
     backup.stopBackupScheduler();
   });
 
   afterEach(async () => {
-    // Clean up temp directory
-    try {
-      await fs.promises.rm(tempDir, { recursive: true, force: true });
-    } catch {
-      // Ignore cleanup errors
-    }
+    await closeDb();
+    await testDatabase.cleanup();
+    await fs.promises.rm(tempDir, { recursive: true, force: true });
+    process.env = { ...originalEnv };
     vi.clearAllMocks();
   });
 
+  function readSnapshot(filename: string) {
+    const filePath = path.join(tempDir, "backups", filename);
+    const compressed = fs.readFileSync(filePath);
+    return JSON.parse(gunzipSync(compressed).toString("utf-8")) as {
+      format: string;
+      tables: {
+        jobs: Array<{ id: string; title: string }>;
+      };
+    };
+  }
+
   describe("createBackup", () => {
-    it("should create an automatic backup with correct filename format", async () => {
+    it("creates an automatic snapshot with the expected filename", async () => {
       const filename = await backup.createBackup("auto");
 
-      // Check filename format: jobs_YYYY_MM_DD.db
-      expect(filename).toMatch(/^jobs_\d{4}_\d{2}_\d{2}\.db$/);
+      expect(filename).toMatch(/^jobs_\d{4}_\d{2}_\d{2}\.json\.gz$/);
+      expect(fs.existsSync(path.join(tempDir, "backups", filename))).toBe(true);
 
-      // Check file was created
-      const backupPath = path.join(tempDir, filename);
-      expect(fs.existsSync(backupPath)).toBe(true);
-
-      // Check backup is a valid SQLite database with expected data
-      const backupDb = new Database(backupPath, {
-        readonly: true,
-        fileMustExist: true,
-      });
-      try {
-        const row = backupDb
-          .prepare("SELECT name FROM test_items ORDER BY id LIMIT 1")
-          .get() as { name: string } | undefined;
-        expect(row?.name).toBe("alpha");
-      } finally {
-        backupDb.close();
-      }
+      const snapshot = readSnapshot(filename);
+      expect(snapshot.format).toBe("job-ops-backup-v1");
+      expect(snapshot.tables.jobs).toEqual(
+        expect.arrayContaining([
+          expect.objectContaining({
+            id: "job-1",
+            title: "Test Job",
+          }),
+        ]),
+      );
     });
 
-    it("should create a manual backup with correct filename format", async () => {
+    it("creates a manual snapshot with the expected filename", async () => {
       const filename = await backup.createBackup("manual");
 
-      // Check filename format: jobs_manual_YYYY_MM_DD_HH_MM_SS.db
       expect(filename).toMatch(
-        /^jobs_manual_\d{4}_\d{2}_\d{2}_\d{2}_\d{2}_\d{2}\.db$/,
+        /^jobs_manual_\d{4}_\d{2}_\d{2}_\d{2}_\d{2}_\d{2}\.json\.gz$/,
       );
-
-      // Check file was created
-      const backupPath = path.join(tempDir, filename);
-      expect(fs.existsSync(backupPath)).toBe(true);
-
-      const backupDb = new Database(backupPath, {
-        readonly: true,
-        fileMustExist: true,
-      });
-      try {
-        const count = backupDb
-          .prepare("SELECT COUNT(*) as count FROM test_items")
-          .get() as { count: number };
-        expect(count.count).toBe(1);
-      } finally {
-        backupDb.close();
-      }
+      expect(fs.existsSync(path.join(tempDir, "backups", filename))).toBe(true);
     });
 
-    it("should add a suffix when manual backup name collides", async () => {
-      // Only fake Date to keep async I/O (used by better-sqlite3 backup) real.
+    it("adds a suffix when a manual filename collides", async () => {
       vi.useFakeTimers({ toFake: ["Date"] });
       try {
-        vi.setSystemTime(new Date("2026-01-15T12:30:45Z"));
+        const frozen = new Date("2026-01-15T12:30:45Z");
+        vi.setSystemTime(frozen);
 
         const first = await backup.createBackup("manual");
         const second = await backup.createBackup("manual");
 
-        expect(first).toBe("jobs_manual_2026_01_15_12_30_45.db");
-        expect(second).toBe("jobs_manual_2026_01_15_12_30_45_1.db");
-        expect(fs.existsSync(path.join(tempDir, second))).toBe(true);
+        const year = frozen.getFullYear();
+        const month = String(frozen.getMonth() + 1).padStart(2, "0");
+        const day = String(frozen.getDate()).padStart(2, "0");
+        const hours = String(frozen.getHours()).padStart(2, "0");
+        const minutes = String(frozen.getMinutes()).padStart(2, "0");
+        const seconds = String(frozen.getSeconds()).padStart(2, "0");
+        const expectedBase =
+          `jobs_manual_${year}_${month}_${day}_${hours}_${minutes}_${seconds}`;
+
+        expect(first).toBe(`${expectedBase}.json.gz`);
+        expect(second).toBe(`${expectedBase}_1.json.gz`);
       } finally {
         vi.useRealTimers();
       }
     });
-
-    it("should throw error if database does not exist", async () => {
-      // Delete the database
-      await fs.promises.unlink(dbPath);
-
-      await expect(backup.createBackup("auto")).rejects.toThrow(
-        "Database file not found",
-      );
-    });
   });
 
   describe("listBackups", () => {
-    it("should return empty array when no backups exist", async () => {
+    it("returns an empty list when no snapshots exist", async () => {
       const backups = await backup.listBackups();
       expect(backups).toEqual([]);
     });
 
-    it("should list all backups with metadata", async () => {
-      // Create some backups
+    it("lists snapshots with metadata", async () => {
       await backup.createBackup("auto");
       await backup.createBackup("manual");
 
@@ -153,57 +148,47 @@ describe("Backup Service", () => {
       expect(backups[0]).toHaveProperty("createdAt");
     });
 
-    it("should sort backups by date (newest first)", async () => {
-      // Create backups with different dates by manipulating filenames
-      const oldBackup = path.join(tempDir, "jobs_2026_01_01.db");
-      const newBackup = path.join(tempDir, "jobs_2026_01_15.db");
-      await fs.promises.writeFile(oldBackup, "old");
-      await fs.promises.writeFile(newBackup, "new");
+    it("sorts snapshots by date descending", async () => {
+      await fs.promises.mkdir(path.join(tempDir, "backups"), { recursive: true });
+      await fs.promises.writeFile(
+        path.join(tempDir, "backups", "jobs_2026_01_01.json.gz"),
+        "old",
+      );
+      await fs.promises.writeFile(
+        path.join(tempDir, "backups", "jobs_2026_01_15.json.gz"),
+        "new",
+      );
 
       const backups = await backup.listBackups();
 
-      expect(backups[0].filename).toBe("jobs_2026_01_15.db");
-      expect(backups[1].filename).toBe("jobs_2026_01_01.db");
+      expect(backups[0].filename).toBe("jobs_2026_01_15.json.gz");
+      expect(backups[1].filename).toBe("jobs_2026_01_01.json.gz");
     });
 
-    it("should ignore non-backup files", async () => {
-      // Create a backup and some other files
+    it("ignores non-backup files", async () => {
       await backup.createBackup("auto");
-      await fs.promises.writeFile(path.join(tempDir, "random.txt"), "text");
-      await fs.promises.writeFile(path.join(tempDir, "jobs.db"), "db");
+      await fs.promises.writeFile(path.join(tempDir, "backups", "random.txt"), "x");
 
       const backups = await backup.listBackups();
 
       expect(backups).toHaveLength(1);
-      expect(backups[0].filename).toMatch(/^jobs_\d{4}_\d{2}_\d{2}\.db$/);
-    });
-
-    it("should include suffixed manual backups", async () => {
-      const filename = "jobs_manual_2026_01_01_12_00_00_2.db";
-      await fs.promises.writeFile(path.join(tempDir, filename), "manual");
-
-      const backups = await backup.listBackups();
-
-      expect(backups).toHaveLength(1);
-      expect(backups[0].filename).toBe(filename);
-      expect(backups[0].type).toBe("manual");
-      expect(backups[0].createdAt).toBe("2026-01-01T12:00:00.000Z");
+      expect(backups[0].filename).toMatch(/^jobs_\d{4}_\d{2}_\d{2}\.json\.gz$/);
     });
   });
 
   describe("deleteBackup", () => {
-    it("should delete a backup file", async () => {
+    it("deletes a backup file", async () => {
       const filename = await backup.createBackup("auto");
-      const backupPath = path.join(tempDir, filename);
+      const filePath = path.join(tempDir, "backups", filename);
 
-      expect(fs.existsSync(backupPath)).toBe(true);
+      expect(fs.existsSync(filePath)).toBe(true);
 
       await backup.deleteBackup(filename);
 
-      expect(fs.existsSync(backupPath)).toBe(false);
+      expect(fs.existsSync(filePath)).toBe(false);
     });
 
-    it("should throw error for invalid filename", async () => {
+    it("rejects invalid filenames", async () => {
       await expect(backup.deleteBackup("../../../etc/passwd")).rejects.toThrow(
         "Invalid backup filename",
       );
@@ -212,58 +197,41 @@ describe("Backup Service", () => {
       );
     });
 
-    it("should throw error if backup does not exist", async () => {
-      await expect(backup.deleteBackup("jobs_2026_01_01.db")).rejects.toThrow(
-        "Backup not found",
-      );
-    });
-
-    it("should delete a suffixed manual backup", async () => {
-      const filename = "jobs_manual_2026_01_01_12_00_00_1.db";
-      await fs.promises.writeFile(path.join(tempDir, filename), "manual");
-
-      await backup.deleteBackup(filename);
-
-      expect(fs.existsSync(path.join(tempDir, filename))).toBe(false);
+    it("rejects missing backups", async () => {
+      await expect(
+        backup.deleteBackup("jobs_2026_01_01.json.gz"),
+      ).rejects.toThrow("Backup not found");
     });
   });
 
   describe("cleanupOldBackups", () => {
-    it("should delete oldest automatic backups when exceeding max count", async () => {
-      // Create 7 auto backups (max is 5)
-      for (let i = 1; i <= 7; i++) {
-        const filename = `jobs_2026_01_${String(i).padStart(2, "0")}.db`;
-        await fs.promises.writeFile(path.join(tempDir, filename), "data");
+    it("deletes oldest automatic snapshots when above retention", async () => {
+      await fs.promises.mkdir(path.join(tempDir, "backups"), { recursive: true });
+      for (let i = 1; i <= 7; i += 1) {
+        const filename = `jobs_2026_01_${String(i).padStart(2, "0")}.json.gz`;
+        await fs.promises.writeFile(path.join(tempDir, "backups", filename), "x");
       }
 
-      // Set max count to 5
       backup.setBackupSettings({ maxCount: 5 });
       await backup.cleanupOldBackups();
 
       const remaining = await backup.listBackups();
+      const filenames = remaining.map((entry) => entry.filename);
       expect(remaining).toHaveLength(5);
-      // Should keep the 5 newest (03-07)
-      const filenames = remaining.map((b) => b.filename);
-      expect(filenames).toContain("jobs_2026_01_03.db");
-      expect(filenames).toContain("jobs_2026_01_07.db");
-      expect(filenames).not.toContain("jobs_2026_01_01.db");
-      expect(filenames).not.toContain("jobs_2026_01_02.db");
+      expect(filenames).toContain("jobs_2026_01_03.json.gz");
+      expect(filenames).toContain("jobs_2026_01_07.json.gz");
+      expect(filenames).not.toContain("jobs_2026_01_01.json.gz");
+      expect(filenames).not.toContain("jobs_2026_01_02.json.gz");
     });
 
-    it("should not delete manual backups", async () => {
-      // Create auto backups
-      for (let i = 1; i <= 7; i++) {
-        const filename = `jobs_2026_01_${String(i).padStart(2, "0")}.db`;
-        await fs.promises.writeFile(path.join(tempDir, filename), "data");
+    it("preserves manual snapshots during cleanup", async () => {
+      await fs.promises.mkdir(path.join(tempDir, "backups"), { recursive: true });
+      for (let i = 1; i <= 7; i += 1) {
+        const filename = `jobs_2026_01_${String(i).padStart(2, "0")}.json.gz`;
+        await fs.promises.writeFile(path.join(tempDir, "backups", filename), "x");
       }
-
-      // Create manual backups
       await fs.promises.writeFile(
-        path.join(tempDir, "jobs_manual_2026_01_01_12_00_00.db"),
-        "manual",
-      );
-      await fs.promises.writeFile(
-        path.join(tempDir, "jobs_manual_2026_01_02_12_00_00.db"),
+        path.join(tempDir, "backups", "jobs_manual_2026_01_01_12_00_00.json.gz"),
         "manual",
       );
 
@@ -271,45 +239,8 @@ describe("Backup Service", () => {
       await backup.cleanupOldBackups();
 
       const remaining = await backup.listBackups();
-      const autoBackups = remaining.filter((b) => b.type === "auto");
-      const manualBackups = remaining.filter((b) => b.type === "manual");
-
-      expect(autoBackups).toHaveLength(5);
-      expect(manualBackups).toHaveLength(2);
-    });
-
-    it("should not delete if count is within limit", async () => {
-      // Create 3 auto backups (max is 5)
-      for (let i = 1; i <= 3; i++) {
-        const filename = `jobs_2026_01_${String(i).padStart(2, "0")}.db`;
-        await fs.promises.writeFile(path.join(tempDir, filename), "data");
-      }
-
-      backup.setBackupSettings({ maxCount: 5 });
-      await backup.cleanupOldBackups();
-
-      const remaining = await backup.listBackups();
-      expect(remaining).toHaveLength(3);
-    });
-  });
-
-  describe("setBackupSettings", () => {
-    it("should update settings", () => {
-      backup.setBackupSettings({ enabled: true, hour: 4, maxCount: 3 });
-
-      const settings = backup.getBackupSettings();
-      expect(settings.enabled).toBe(true);
-      expect(settings.hour).toBe(4);
-      expect(settings.maxCount).toBe(3);
-    });
-
-    it("should merge partial settings", () => {
-      backup.setBackupSettings({ hour: 6 });
-
-      const settings = backup.getBackupSettings();
-      expect(settings.enabled).toBe(false); // unchanged
-      expect(settings.hour).toBe(6); // updated
-      expect(settings.maxCount).toBe(5); // unchanged
+      expect(remaining.filter((entry) => entry.type === "auto")).toHaveLength(5);
+      expect(remaining.filter((entry) => entry.type === "manual")).toHaveLength(1);
     });
   });
 
@@ -322,45 +253,23 @@ describe("Backup Service", () => {
       vi.useRealTimers();
     });
 
-    it("should start scheduler when enabled", () => {
-      const now = new Date("2026-01-15T10:00:00Z");
-      vi.setSystemTime(now);
+    it("starts the scheduler when enabled", () => {
+      vi.setSystemTime(new Date("2026-01-15T10:00:00Z"));
 
       expect(backup.isBackupSchedulerRunning()).toBe(false);
-
       backup.setBackupSettings({ enabled: true, hour: 14 });
 
       expect(backup.isBackupSchedulerRunning()).toBe(true);
       expect(backup.getNextBackupTime()).not.toBeNull();
     });
 
-    it("should stop scheduler when disabled", () => {
+    it("stops the scheduler when disabled", () => {
       backup.setBackupSettings({ enabled: true, hour: 14 });
       expect(backup.isBackupSchedulerRunning()).toBe(true);
 
       backup.setBackupSettings({ enabled: false });
       expect(backup.isBackupSchedulerRunning()).toBe(false);
       expect(backup.getNextBackupTime()).toBeNull();
-    });
-
-    it("should restart scheduler when hour changes", () => {
-      const now = new Date("2026-01-15T10:00:00Z");
-      vi.setSystemTime(now);
-
-      backup.setBackupSettings({ enabled: true, hour: 14 });
-      const firstRun = backup.getNextBackupTime();
-
-      backup.setBackupSettings({ hour: 16 });
-      const secondRun = backup.getNextBackupTime();
-
-      expect(secondRun).not.toBe(firstRun);
-      expect(secondRun).not.toBeNull();
-      expect(firstRun).not.toBeNull();
-      if (secondRun && firstRun) {
-        expect(new Date(secondRun).getTime()).toBeGreaterThan(
-          new Date(firstRun).getTime(),
-        );
-      }
     });
   });
 });

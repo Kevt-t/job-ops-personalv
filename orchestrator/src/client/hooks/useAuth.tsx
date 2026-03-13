@@ -1,26 +1,10 @@
-import type { AuthSessionPayload, AuthStatusResponse, AuthUser } from "@shared/types";
+import type { AuthStatusResponse, AuthUser } from "@shared/types";
 import { useQueryClient } from "@tanstack/react-query";
 import type React from "react";
-import { createContext, useContext, useEffect, useMemo, useState } from "react";
+import { useContext, useEffect, useMemo, useState } from "react";
 import * as api from "@client/api";
 import { setUnauthorizedHandler } from "@/client/lib/auth";
-
-type AuthContextValue = {
-  user: AuthUser | null;
-  role: AuthUser["role"] | null;
-  isAuthenticated: boolean;
-  isLoading: boolean;
-  needsSetup: boolean;
-  authRequired: boolean;
-  login: (input: { username: string; password: string }) => Promise<AuthSessionPayload>;
-  register: (input: {
-    username: string;
-    password: string;
-  }) => Promise<AuthSessionPayload>;
-  logout: () => Promise<void>;
-};
-
-const AuthContext = createContext<AuthContextValue | null>(null);
+import { AuthContext, type AuthContextValue } from "./auth-context";
 
 type AuthState = {
   user: AuthUser | null;
