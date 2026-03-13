@@ -138,18 +138,6 @@ vi.mock("./resumeProjects", () => ({
   }),
 }));
 
-const mockTracerLinks = vi.hoisted(() => ({
-  resolveTracerPublicBaseUrl: vi.fn().mockReturnValue("https://jobops.example"),
-  rewriteResumeLinksWithTracer: vi
-    .fn()
-    .mockResolvedValue({ rewrittenLinks: 2 }),
-}));
-
-vi.mock("./tracer-links", () => ({
-  resolveTracerPublicBaseUrl: mockTracerLinks.resolveTracerPublicBaseUrl,
-  rewriteResumeLinksWithTracer: mockTracerLinks.rewriteResumeLinksWithTracer,
-}));
-
 vi.mock("./rxresume/baseResumeId", () => ({
   getConfiguredRxResumeBaseResumeId: vi.fn().mockResolvedValue({
     mode: "v4",
@@ -198,18 +186,6 @@ vi.mock("./rxresume", async () => {
           item.visible = selectedSet.has(item.id);
         }
         if (data.sections?.projects) data.sections.projects.visible = true;
-
-        if (args.tracerLinks?.enabled) {
-          mockTracerLinks.resolveTracerPublicBaseUrl({
-            requestOrigin: args.tracerLinks.requestOrigin,
-          });
-          await mockTracerLinks.rewriteResumeLinksWithTracer({
-            jobId: args.jobId,
-            resumeData: data,
-            publicBaseUrl: "https://jobops.example",
-            companyName: args.tracerLinks.companyName ?? null,
-          });
-        }
 
         return {
           mode: "v4",
@@ -284,12 +260,6 @@ describe("PDF Service Tailoring Logic", () => {
     vi.clearAllMocks();
     mocks.readFile.mockResolvedValue(JSON.stringify(mockProfile));
     mockRxResume.clearLastCreateData();
-    mockTracerLinks.resolveTracerPublicBaseUrl.mockReturnValue(
-      "https://jobops.example",
-    );
-    mockTracerLinks.rewriteResumeLinksWithTracer.mockResolvedValue({
-      rewrittenLinks: 2,
-    });
   });
 
   it("should use provided selectedProjectIds and BYPASS AI selection", async () => {
@@ -368,28 +338,5 @@ describe("PDF Service Tailoring Logic", () => {
       (p: any) => p.visible,
     ).length;
     expect(visibleCount).toBe(1);
-  });
-
-  it("does not rewrite links when tracer links are disabled", async () => {
-    await generatePdf("job-no-tracer", {}, "desc", undefined, undefined, {
-      tracerLinksEnabled: false,
-    });
-
-    expect(mockTracerLinks.resolveTracerPublicBaseUrl).not.toHaveBeenCalled();
-    expect(mockTracerLinks.rewriteResumeLinksWithTracer).not.toHaveBeenCalled();
-  });
-
-  it("rewrites links when tracer links are enabled", async () => {
-    await generatePdf("job-with-tracer", {}, "desc", undefined, undefined, {
-      tracerLinksEnabled: true,
-      requestOrigin: "https://jobops.example",
-    });
-
-    expect(mockTracerLinks.resolveTracerPublicBaseUrl).toHaveBeenCalledWith({
-      requestOrigin: "https://jobops.example",
-    });
-    expect(mockTracerLinks.rewriteResumeLinksWithTracer).toHaveBeenCalledTimes(
-      1,
-    );
   });
 });

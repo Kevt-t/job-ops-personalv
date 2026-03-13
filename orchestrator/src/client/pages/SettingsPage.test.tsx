@@ -4,7 +4,6 @@ import { MemoryRouter } from "react-router-dom";
 import { toast } from "sonner";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import * as api from "../api";
-import { _resetTracerReadinessCache } from "../hooks/useTracerReadiness";
 import { renderWithQueryClient } from "../test/renderWithQueryClient";
 import { SettingsPage } from "./SettingsPage";
 
@@ -19,7 +18,6 @@ vi.mock("../api", () => ({
   validateRxresume: vi.fn(),
   clearDatabase: vi.fn(),
   deleteJobsByStatus: vi.fn(),
-  getTracerReadiness: vi.fn(),
   getBackups: vi.fn().mockResolvedValue({ backups: [], nextScheduled: null }),
   createManualBackup: vi.fn(),
   deleteBackup: vi.fn(),
@@ -78,16 +76,6 @@ describe("SettingsPage", () => {
     Object.defineProperty(HTMLElement.prototype, "scrollIntoView", {
       configurable: true,
       value: vi.fn(),
-    });
-    _resetTracerReadinessCache();
-    vi.mocked(api.getTracerReadiness).mockResolvedValue({
-      status: "ready",
-      canEnable: true,
-      publicBaseUrl: "https://my-jobops.example.com",
-      healthUrl: "https://my-jobops.example.com/health",
-      checkedAt: Date.now(),
-      lastSuccessAt: Date.now(),
-      reason: null,
     });
     vi.mocked(api.validateRxresume).mockResolvedValue({
       valid: false,

@@ -12,7 +12,6 @@ import { Button } from "@/components/ui/button";
 import { cn, formatDate, sourceLabel } from "@/lib/utils";
 import {
   getJobStatusIndicator,
-  getTracerStatusIndicator,
   StatusIndicator,
 } from "./StatusIndicator";
 
@@ -44,7 +43,6 @@ export const JobHeader: React.FC<JobHeaderProps> = ({
   className,
 }) => {
   const jobStatus = getJobStatusIndicator(job.status);
-  const tracerStatus = getTracerStatusIndicator(job.tracerLinksEnabled);
   const { pathname } = useLocation();
   const isJobPage = pathname.startsWith("/job/");
   const deadline = formatDate(job.deadline);
@@ -123,10 +121,6 @@ export const JobHeader: React.FC<JobHeaderProps> = ({
           <StatusIndicator
             dotColor={jobStatus.dotColor}
             label={jobStatus.label}
-          />
-          <StatusIndicator
-            dotColor={tracerStatus.dotColor}
-            label={tracerStatus.label}
           />
         </div>
         <ScoreMeter score={job.suitabilityScore} />

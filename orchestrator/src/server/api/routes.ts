@@ -13,7 +13,6 @@ import { onboardingRouter } from "./routes/onboarding";
 import { pipelineRouter } from "./routes/pipeline";
 import { profileRouter } from "./routes/profile";
 import { settingsRouter } from "./routes/settings";
-import { tracerLinksRouter } from "./routes/tracer-links";
 import { webhookRouter } from "./routes/webhook";
 
 export const apiRouter = Router();
@@ -29,4 +28,3 @@ apiRouter.use("/profile", profileRouter);
 apiRouter.use("/database", databaseRouter);
 apiRouter.use("/onboarding", onboardingRouter);
 apiRouter.use("/backups", backupRouter);
-apiRouter.use("/tracer-links", tracerLinksRouter);

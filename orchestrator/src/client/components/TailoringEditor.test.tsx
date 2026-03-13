@@ -4,7 +4,6 @@ import { fireEvent, screen, waitFor } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import * as api from "../api";
 import { useProfile } from "../hooks/useProfile";
-import { _resetTracerReadinessCache } from "../hooks/useTracerReadiness";
 import { renderWithQueryClient } from "../test/renderWithQueryClient";
 import { TailoringEditor } from "./TailoringEditor";
 
@@ -16,7 +15,6 @@ vi.mock("../api", () => ({
   updateJob: vi.fn().mockResolvedValue({}),
   summarizeJob: vi.fn(),
   generateJobPdf: vi.fn(),
-  getTracerReadiness: vi.fn(),
 }));
 
 vi.mock("../hooks/useProfile", () => ({
@@ -53,16 +51,6 @@ const ensureAccordionOpen = (name: string) => {
 describe("TailoringEditor", () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    _resetTracerReadinessCache();
-    vi.mocked(api.getTracerReadiness).mockResolvedValue({
-      status: "ready",
-      canEnable: true,
-      publicBaseUrl: "https://my-jobops.example.com",
-      healthUrl: "https://my-jobops.example.com/health",
-      checkedAt: Date.now(),
-      lastSuccessAt: Date.now(),
-      reason: null,
-    });
     vi.mocked(useProfile).mockReturnValue({
       profile: {
         basics: {
@@ -285,32 +273,6 @@ describe("TailoringEditor", () => {
     ensureAccordionOpen("Backend");
     expect(screen.getByDisplayValue("Backend")).toBeInTheDocument();
     expect(screen.getByDisplayValue("Node.js, Kafka")).toBeInTheDocument();
-  });
-
-  it("persists tracer-links toggle in tailoring save payload", async () => {
-    render(
-      <TailoringEditor
-        job={createJob({ tracerLinksEnabled: false })}
-        onUpdate={vi.fn()}
-      />,
-    );
-    await waitFor(() =>
-      expect(api.getResumeProjectsCatalog).toHaveBeenCalled(),
-    );
-    await waitFor(() => expect(api.getTracerReadiness).toHaveBeenCalled());
-    ensureAccordionOpen("Tracer Links");
-
-    fireEvent.click(screen.getByLabelText("Enable tracer links for this job"));
-    fireEvent.click(screen.getByRole("button", { name: "Save Selection" }));
-
-    await waitFor(() =>
-      expect(api.updateJob).toHaveBeenCalledWith(
-        "job-1",
-        expect.objectContaining({
-          tracerLinksEnabled: true,
-        }),
-      ),
-    );
   });
 
   it("supports undo to template and redo to AI draft", async () => {
