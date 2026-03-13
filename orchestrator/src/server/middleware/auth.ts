@@ -68,7 +68,12 @@ export function requireWriteAccess(
   res: Response,
   next: NextFunction,
 ): void {
-  if (isDemoMode() || !isWriteMethod(req.method) || isCoachAllowedWrite(req)) {
+  if (
+    isDemoMode() ||
+    isPublicApiRoute(req) ||
+    !isWriteMethod(req.method) ||
+    isCoachAllowedWrite(req)
+  ) {
     next();
     return;
   }
