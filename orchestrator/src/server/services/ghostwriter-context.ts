@@ -13,6 +13,7 @@ import {
   stripLanguageDirectivesFromConstraints,
   type WritingStyle,
 } from "./writing-style";
+import { loadContextDocuments } from "./context-documents";
 
 export type JobChatPromptContext = {
   job: Job;
@@ -20,6 +21,7 @@ export type JobChatPromptContext = {
   systemPrompt: string;
   jobSnapshot: string;
   profileSnapshot: string;
+  projectsContext: string;
 };
 
 const MAX_JOB_DESCRIPTION = 4000;
@@ -132,6 +134,7 @@ function buildSystemPrompt(
       ? `Writing constraints: ${effectiveConstraints}`
       : null,
     style.doNotUse ? `Avoid these terms: ${style.doNotUse}` : null,
+    "Detailed project write-ups are provided separately. Use them to give specific, concrete examples when relevant.",
   ]);
 }
 
@@ -158,6 +161,7 @@ export async function buildJobChatPromptContext(
   const profileSnapshot = buildProfileSnapshot(profile);
   const systemPrompt = buildSystemPrompt(style, profile);
   const jobSnapshot = buildJobSnapshot(job);
+  const projectsContext = await loadContextDocuments("projects_context");
 
   if (!jobSnapshot.trim()) {
     throw badRequest("Unable to build job context");
@@ -170,6 +174,7 @@ export async function buildJobChatPromptContext(
       systemChars: systemPrompt.length,
       jobChars: jobSnapshot.length,
       profileChars: profileSnapshot.length,
+      projectsChars: projectsContext.length,
     }),
   });
 
@@ -179,5 +184,6 @@ export async function buildJobChatPromptContext(
     systemPrompt,
     jobSnapshot,
     profileSnapshot,
+    projectsContext,
   };
 }
