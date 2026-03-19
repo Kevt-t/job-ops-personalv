@@ -245,22 +245,18 @@ export async function summarizeJob(
 
       const profile = await getProfile();
 
-      // 1. Generate Summary & Tailoring
-      let tailoredSummary = job.tailoredSummary;
-      let tailoredHeadline = job.tailoredHeadline;
+      // 1. Generate Tailoring (skills)
       let tailoredSkills = job.tailoredSkills;
 
-      if (!tailoredSummary || !tailoredHeadline || options?.force) {
+      if (!tailoredSkills || options?.force) {
         jobLogger.info("Generating tailoring content");
         const tailoringResult = await generateTailoring(
           job.jobDescription || "",
           profile,
         );
         if (tailoringResult.success && tailoringResult.data) {
-          tailoredSummary = tailoringResult.data.summary;
-          tailoredHeadline = tailoringResult.data.headline;
           tailoredSkills = JSON.stringify(tailoringResult.data.skills);
-        } else if (options?.force || !tailoredSummary || !tailoredHeadline) {
+        } else if (options?.force || !tailoredSkills) {
           return {
             success: false,
             error: `Tailoring failed: ${tailoringResult.error || "unknown error"}`,
@@ -304,8 +300,6 @@ export async function summarizeJob(
       }
 
       await jobsRepo.updateJob(job.id, {
-        tailoredSummary: tailoredSummary ?? undefined,
-        tailoredHeadline: tailoredHeadline ?? undefined,
         tailoredSkills: tailoredSkills ?? undefined,
         selectedProjectIds: selectedProjectIds ?? undefined,
       });
@@ -342,8 +336,6 @@ export async function generateFinalPdf(
       const pdfResult = await generatePdf(
         job.id,
         {
-          summary: job.tailoredSummary || "",
-          headline: job.tailoredHeadline || "",
           skills: job.tailoredSkills ? JSON.parse(job.tailoredSkills) : [],
         },
         job.jobDescription || "",

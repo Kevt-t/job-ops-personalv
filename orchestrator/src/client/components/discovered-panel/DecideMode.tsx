@@ -18,7 +18,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Separator } from "@/components/ui/separator";
-import { FitAssessment, JobHeader, TailoredSummary } from "..";
+import { FitAssessment, JobHeader } from "..";
 import { KbdHint } from "../KbdHint";
 import { CollapsibleSection } from "./CollapsibleSection";
 import { getPlainDescription } from "./helpers";
@@ -90,7 +90,6 @@ export const DecideMode: React.FC<DecideModeProps> = ({
 
       <div className="flex-1 py-6 space-y-6 overflow-y-auto">
         <FitAssessment job={job} />
-        <TailoredSummary job={job} />
 
         <CollapsibleSection
           isOpen={showDescription}

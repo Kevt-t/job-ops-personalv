@@ -15,8 +15,6 @@ export type TailoredSkillsInput =
   | undefined;
 
 export type TailorChunkInput = {
-  headline?: string | null;
-  summary?: string | null;
   skills?: TailoredSkillsInput;
 };
 
@@ -425,14 +423,4 @@ export function applyTailoredChunks(args: {
   tailoredContent: TailorChunkInput;
 }): void {
   applyTailoredSkills(args.mode, args.resumeData, args.tailoredContent.skills);
-  applyTailoredSummary(
-    args.mode,
-    args.resumeData,
-    args.tailoredContent.summary,
-  );
-  applyTailoredHeadline(
-    args.mode,
-    args.resumeData,
-    args.tailoredContent.headline,
-  );
 }

@@ -1,5 +1,5 @@
 /**
- * Service for generating tailored resume content (Summary, Headline, Skills).
+ * Service for generating tailored resume content (Skills).
  */
 
 import { logger } from "@infra/logger";
@@ -17,8 +17,6 @@ import {
 } from "./writing-style";
 
 export interface TailoredData {
-  summary: string;
-  headline: string;
   skills: Array<{ name: string; keywords: string[] }>;
 }
 
@@ -34,14 +32,6 @@ const TAILORING_SCHEMA: JsonSchemaDefinition = {
   schema: {
     type: "object",
     properties: {
-      headline: {
-        type: "string",
-        description: "Job title headline matching the JD exactly",
-      },
-      summary: {
-        type: "string",
-        description: "Tailored resume summary paragraph",
-      },
       skills: {
         type: "array",
         description: "Skills sections with keywords tailored to the job",
@@ -63,7 +53,7 @@ const TAILORING_SCHEMA: JsonSchemaDefinition = {
         },
       },
     },
-    required: ["headline", "summary", "skills"],
+    required: ["skills"],
     additionalProperties: false,
   },
 };
@@ -109,36 +99,18 @@ export async function generateTailoring(
     };
   }
 
-  const { summary, headline, skills } = result.data;
+  const { skills } = result.data;
 
   // Basic validation
-  if (!summary || !headline || !Array.isArray(skills)) {
+  if (!Array.isArray(skills)) {
     logger.warn("AI response missing required tailoring fields", result.data);
   }
 
   return {
     success: true,
     data: {
-      summary: sanitizeText(summary || ""),
-      headline: sanitizeText(headline || ""),
       skills: skills || [],
     },
-  };
-}
-
-/**
- * Backwards compatibility wrapper if needed, or alias.
- */
-export async function generateSummary(
-  jobDescription: string,
-  profile: ResumeProfile,
-): Promise<{ success: boolean; summary?: string; error?: string }> {
-  // If we just need summary, we can discard the rest (or cache it? but here we just return summary)
-  const result = await generateTailoring(jobDescription, profile);
-  return {
-    success: result.success,
-    summary: result.data?.summary,
-    error: result.error,
   };
 }
 
@@ -178,7 +150,7 @@ function buildTailoringPrompt(
 
   return `
 You are an expert resume writer tailoring a profile for a specific job application.
-You must return a JSON object with three fields: "headline", "summary", and "skills".
+You must return a JSON object with one field: "skills".
 
 JOB DESCRIPTION (JD):
 ${jd}
@@ -188,19 +160,7 @@ ${JSON.stringify(relevantProfile, null, 2)}
 
 INSTRUCTIONS:
 
-1. "headline" (String):
-   - CRITICAL: This is the #1 ATS factor.
-   - It must match the Job Title from the JD exactly (e.g., if JD says "Senior React Dev", use "Senior React Dev").
-   - Do NOT translate, localize, or paraphrase the headline, even if the rest of the output is in ${outputLanguage}.
-
-2. "summary" (String):
-   - The Hook. This needs to mirror the company's "About You" / "What we're looking for" section.
-   - Keep it concise, warm, and confident.
-   - Do NOT invent experience.
-   - Use the profile to add context.
-   - Write the summary in ${outputLanguage}.
-
-3. "skills" (Array of Objects):
+1. "skills" (Array of Objects):
    - Review my existing skills section structure.
    - Keyword Stuffing: Swap synonyms to match the JD exactly (e.g. "TDD" -> "Unit Testing", "ReactJS" -> "React").
    - Keep my original skill levels and categories, just rename/reorder keywords to prioritize JD terms.
@@ -210,18 +170,12 @@ INSTRUCTIONS:
 WRITING STYLE PREFERENCES:
 - Tone: ${writingStyle.tone}
 - Formality: ${writingStyle.formality}
- - Output language for summary and skills: ${outputLanguage}
+- Output language for skills: ${outputLanguage}
 ${effectiveConstraints ? `- Additional constraints: ${effectiveConstraints}` : ""}
 ${writingStyle.doNotUse ? `- Avoid these words or phrases: ${writingStyle.doNotUse}` : ""}
 
-ATS SAFETY:
-- Keep "headline" in the exact original job-title wording from the JD.
-- Do not translate the headline, even when summary and skills are written in ${outputLanguage}.
-
 OUTPUT FORMAT (JSON):
 {
-  "headline": "...",
-  "summary": "...",
   "skills": [ ... ]
 }
 `;

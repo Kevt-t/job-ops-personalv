@@ -8,5 +8,4 @@ export { ReadyPanel } from "./ReadyPanel";
 export { ScoreIndicator } from "./ScoreIndicator";
 export { Stats } from "./Stats";
 export { StatusBadge } from "./StatusBadge";
-export { TailoredSummary } from "./TailoredSummary";
 export { TailoringEditor } from "./TailoringEditor";

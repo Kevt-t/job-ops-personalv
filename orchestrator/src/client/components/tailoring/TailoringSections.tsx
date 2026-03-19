@@ -20,26 +20,14 @@ import type { EditableSkillGroup } from "../tailoring-utils";
 interface TailoringSectionsProps {
   catalog: ResumeProjectCatalogItem[];
   isCatalogLoading: boolean;
-  summary: string;
-  headline: string;
   jobDescription: string;
   skillsDraft: EditableSkillGroup[];
   selectedIds: Set<string>;
   openSkillGroupId: string;
   disableInputs: boolean;
-  onSummaryChange: (value: string) => void;
-  onHeadlineChange: (value: string) => void;
-  onUndoSummary: () => void;
-  onUndoHeadline: () => void;
   onUndoSkills: () => void;
-  onRedoSummary: () => void;
-  onRedoHeadline: () => void;
   onRedoSkills: () => void;
-  canUndoSummary: boolean;
-  canUndoHeadline: boolean;
   canUndoSkills: boolean;
-  canRedoSummary: boolean;
-  canRedoHeadline: boolean;
   canRedoSkills: boolean;
   undoDisabledReason?: string | null;
   onDescriptionChange: (value: string) => void;
@@ -63,26 +51,14 @@ const inputClass =
 export const TailoringSections: React.FC<TailoringSectionsProps> = ({
   catalog,
   isCatalogLoading,
-  summary,
-  headline,
   jobDescription,
   skillsDraft,
   selectedIds,
   openSkillGroupId,
   disableInputs,
-  onSummaryChange,
-  onHeadlineChange,
-  onUndoSummary,
-  onUndoHeadline,
   onUndoSkills,
-  onRedoSummary,
-  onRedoHeadline,
   onRedoSkills,
-  canUndoSummary,
-  canUndoHeadline,
   canUndoSkills,
-  canRedoSummary,
-  canRedoHeadline,
   canRedoSkills,
   undoDisabledReason = null,
   onDescriptionChange,
@@ -112,119 +88,6 @@ export const TailoringSections: React.FC<TailoringSectionsProps> = ({
               value={jobDescription}
               onChange={(event) => onDescriptionChange(event.target.value)}
               placeholder="The raw job description..."
-              disabled={disableInputs}
-            />
-          </AccordionContent>
-        </AccordionItem>
-
-        <AccordionItem value="summary" className={sectionClass}>
-          <AccordionTrigger className={triggerClass}>Summary</AccordionTrigger>
-          <AccordionContent className="px-3 pb-3 pt-1">
-            <div className="mb-2 flex justify-end gap-1">
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <Button
-                    type="button"
-                    size="icon"
-                    variant="ghost"
-                    className="h-7 w-7"
-                    onClick={onUndoSummary}
-                    disabled={disableInputs || !canUndoSummary}
-                    aria-label={undoTooltip}
-                    title={
-                      !canUndoSummary
-                        ? (undoDisabledReason ?? undefined)
-                        : undefined
-                    }
-                  >
-                    <Undo2 className="h-3.5 w-3.5" />
-                  </Button>
-                </TooltipTrigger>
-                <TooltipContent>{undoTooltip}</TooltipContent>
-              </Tooltip>
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <Button
-                    type="button"
-                    size="icon"
-                    variant="ghost"
-                    className="h-7 w-7"
-                    onClick={onRedoSummary}
-                    disabled={disableInputs || !canRedoSummary}
-                    aria-label={redoTooltip}
-                  >
-                    <Redo2 className="h-3.5 w-3.5" />
-                  </Button>
-                </TooltipTrigger>
-                <TooltipContent>{redoTooltip}</TooltipContent>
-              </Tooltip>
-            </div>
-            <label htmlFor="tailor-summary-edit" className="sr-only">
-              Tailored Summary
-            </label>
-            <textarea
-              id="tailor-summary-edit"
-              className={`${inputClass} min-h-[120px]`}
-              value={summary}
-              onChange={(event) => onSummaryChange(event.target.value)}
-              placeholder="Write a tailored summary for this role, or generate with AI..."
-              disabled={disableInputs}
-            />
-          </AccordionContent>
-        </AccordionItem>
-
-        <AccordionItem value="headline" className={sectionClass}>
-          <AccordionTrigger className={triggerClass}>Headline</AccordionTrigger>
-          <AccordionContent className="px-3 pb-3 pt-1">
-            <div className="mb-2 flex justify-end gap-1">
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <Button
-                    type="button"
-                    size="icon"
-                    variant="ghost"
-                    className="h-7 w-7"
-                    onClick={onUndoHeadline}
-                    disabled={disableInputs || !canUndoHeadline}
-                    aria-label={undoTooltip}
-                    title={
-                      !canUndoHeadline
-                        ? (undoDisabledReason ?? undefined)
-                        : undefined
-                    }
-                  >
-                    <Undo2 className="h-3.5 w-3.5" />
-                  </Button>
-                </TooltipTrigger>
-                <TooltipContent>{undoTooltip}</TooltipContent>
-              </Tooltip>
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <Button
-                    type="button"
-                    size="icon"
-                    variant="ghost"
-                    className="h-7 w-7"
-                    onClick={onRedoHeadline}
-                    disabled={disableInputs || !canRedoHeadline}
-                    aria-label={redoTooltip}
-                  >
-                    <Redo2 className="h-3.5 w-3.5" />
-                  </Button>
-                </TooltipTrigger>
-                <TooltipContent>{redoTooltip}</TooltipContent>
-              </Tooltip>
-            </div>
-            <label htmlFor="tailor-headline-edit" className="sr-only">
-              Tailored Headline
-            </label>
-            <input
-              id="tailor-headline-edit"
-              type="text"
-              className={inputClass}
-              value={headline}
-              onChange={(event) => onHeadlineChange(event.target.value)}
-              placeholder="Write a concise headline tailored to this role..."
               disabled={disableInputs}
             />
           </AccordionContent>

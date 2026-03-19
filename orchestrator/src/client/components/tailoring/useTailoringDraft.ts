@@ -22,8 +22,6 @@ const hasSelectionDiff = (current: Set<string>, saved: Set<string>) => {
 };
 
 const parseIncomingDraft = (incomingJob: Job) => {
-  const summary = incomingJob.tailoredSummary || "";
-  const headline = incomingJob.tailoredHeadline || "";
   const description = incomingJob.jobDescription || "";
   const selectedIds = parseSelectedIds(incomingJob.selectedProjectIds);
   const skillsDraft = toEditableSkillGroups(
@@ -34,8 +32,6 @@ const parseIncomingDraft = (incomingJob: Job) => {
   );
 
   return {
-    summary,
-    headline,
     description,
     selectedIds,
     skillsDraft,
@@ -54,8 +50,6 @@ export function useTailoringDraft({
 }: UseTailoringDraftParams) {
   const [catalog, setCatalog] = useState<ResumeProjectCatalogItem[]>([]);
   const [isCatalogLoading, setIsCatalogLoading] = useState(true);
-  const [summary, setSummary] = useState(job.tailoredSummary || "");
-  const [headline, setHeadline] = useState(job.tailoredHeadline || "");
   const [jobDescription, setJobDescription] = useState(
     job.jobDescription || "",
   );
@@ -67,10 +61,6 @@ export function useTailoringDraft({
   );
   const [openSkillGroupId, setOpenSkillGroupId] = useState<string>("");
 
-  const [savedSummary, setSavedSummary] = useState(job.tailoredSummary || "");
-  const [savedHeadline, setSavedHeadline] = useState(
-    job.tailoredHeadline || "",
-  );
   const [savedDescription, setSavedDescription] = useState(
     job.jobDescription || "",
   );
@@ -95,16 +85,10 @@ export function useTailoringDraft({
   );
 
   const isDirty = useMemo(() => {
-    if (summary !== savedSummary) return true;
-    if (headline !== savedHeadline) return true;
     if (jobDescription !== savedDescription) return true;
     if (skillsJson !== savedSkillsJson) return true;
     return hasSelectionDiff(selectedIds, savedSelectedIds);
   }, [
-    summary,
-    savedSummary,
-    headline,
-    savedHeadline,
     jobDescription,
     savedDescription,
     skillsJson,
@@ -115,13 +99,9 @@ export function useTailoringDraft({
 
   const applyIncomingDraft = useCallback((incomingJob: Job) => {
     const next = parseIncomingDraft(incomingJob);
-    setSummary(next.summary);
-    setHeadline(next.headline);
     setJobDescription(next.description);
     setSelectedIds(next.selectedIds);
     setSkillsDraft(next.skillsDraft);
-    setSavedSummary(next.summary);
-    setSavedHeadline(next.headline);
     setSavedDescription(next.description);
     setSavedSelectedIds(next.selectedIds);
     setSavedSkillsJson(next.skillsJson);
@@ -202,10 +182,6 @@ export function useTailoringDraft({
   return {
     catalog,
     isCatalogLoading,
-    summary,
-    setSummary,
-    headline,
-    setHeadline,
     jobDescription,
     setJobDescription,
     selectedIds,
