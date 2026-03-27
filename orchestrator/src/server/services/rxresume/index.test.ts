@@ -250,8 +250,6 @@ describe("rxresume adapter", () => {
       mode: "v5",
       resumeData: v5ResumeData,
       tailoredContent: {
-        headline: "New headline",
-        summary: "New summary",
         skills: [{ name: "Frontend", keywords: ["React", "TS"] }],
       },
       jobDescription: "Test JD",
@@ -266,8 +264,8 @@ describe("rxresume adapter", () => {
     ]);
 
     const data = prepared.data as any;
-    expect(data.basics.headline).toBe("New headline");
-    expect(data.summary.content).toBe("New summary");
+    expect(data.basics.headline).toBe("Old headline");
+    expect(data.summary.content).toBe("Old summary");
     expect(data.sections.projects.hidden).toBe(false);
     expect(data.sections.projects.items[0].hidden).toBe(false);
     expect(data.sections.projects.items[1].hidden).toBe(true);

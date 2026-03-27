@@ -80,6 +80,7 @@ CREATE TABLE IF NOT EXISTS jobs (
   tailored_headline TEXT,
   tailored_skills TEXT,
   selected_project_ids TEXT,
+  tailored_project_bullets TEXT,
   pdf_path TEXT,
   tracer_links_enabled BOOLEAN NOT NULL DEFAULT FALSE,
   sponsor_match_score REAL,
@@ -215,6 +216,8 @@ CREATE INDEX IF NOT EXISTS idx_users_role ON users(role);
 CREATE UNIQUE INDEX IF NOT EXISTS idx_users_username_lower ON users(LOWER(username));
 CREATE INDEX IF NOT EXISTS idx_sessions_user_id ON sessions(user_id);
 CREATE INDEX IF NOT EXISTS idx_sessions_expires_at ON sessions(expires_at);
+
+ALTER TABLE jobs ADD COLUMN IF NOT EXISTS tailored_project_bullets TEXT;
 
 COMMIT;
 `;

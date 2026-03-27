@@ -152,6 +152,7 @@ export interface Job {
   tailoredHeadline: string | null; // Generated resume headline
   tailoredSkills: string | null; // Generated resume skills (JSON)
   selectedProjectIds: string | null; // Comma-separated IDs of selected projects
+  tailoredProjectBullets: string | null; // Generated per-project bullet points (JSON)
   pdfPath: string | null; // Path to generated PDF
 
   // JobSpy fields (nullable for non-JobSpy sources)
@@ -304,6 +305,7 @@ export interface UpdateJobInput {
   tailoredHeadline?: string;
   tailoredSkills?: string;
   selectedProjectIds?: string;
+  tailoredProjectBullets?: string;
   pdfPath?: string;
   appliedAt?: string;
 }

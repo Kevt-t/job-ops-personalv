@@ -4,6 +4,7 @@ import { fail } from "@infra/http";
 import { logger } from "@infra/logger";
 import { processJob } from "@server/pipeline/index";
 import * as jobsRepo from "@server/repositories/jobs";
+import { loadAllContextDocuments } from "@server/services/context-documents";
 import { inferManualJobDetails } from "@server/services/manualJob";
 import { getProfile } from "@server/services/profile";
 import { scoreJobSuitability } from "@server/services/scorer";
@@ -269,9 +270,11 @@ manualJobsRouter.post("/import", async (req: Request, res: Response) => {
           throw new Error("Invalid resume profile format");
         }
         const profile = rawProfile as Record<string, unknown>;
+        const projectsContext = await loadAllContextDocuments("projects_context");
         const { score, reason } = await scoreJobSuitability(
           processedJob,
           profile,
+          projectsContext,
         );
         await jobsRepo.updateJob(processedJob.id, {
           suitabilityScore: score,

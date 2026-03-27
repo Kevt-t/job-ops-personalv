@@ -25,6 +25,7 @@ import {
   transitionStage,
   updateStageEvent,
 } from "@server/services/applicationTracking";
+import { loadAllContextDocuments } from "@server/services/context-documents";
 import {
   simulateApplyJob,
   simulateGeneratePdf,
@@ -58,6 +59,13 @@ const tailoredSkillsPayloadSchema = z.array(
   z.object({
     name: z.string(),
     keywords: z.array(z.string()),
+  }),
+);
+
+const tailoredProjectBulletsPayloadSchema = z.array(
+  z.object({
+    projectId: z.string(),
+    bullets: z.array(z.string()),
   }),
 );
 
@@ -164,6 +172,34 @@ const updateJobSchema = z.object({
           code: z.ZodIssueCode.custom,
           message:
             "tailoredSkills must be a JSON array of { name, keywords } objects",
+        });
+      }
+    }),
+  tailoredProjectBullets: z
+    .string()
+    .optional()
+    .superRefine((value, ctx) => {
+      if (value === undefined || value.trim().length === 0) return;
+
+      let parsed: unknown;
+      try {
+        parsed = JSON.parse(value);
+      } catch {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          message:
+            "tailoredProjectBullets must be a JSON array of { projectId, bullets } objects",
+        });
+        return;
+      }
+
+      const parseResult = tailoredProjectBulletsPayloadSchema.safeParse(parsed);
+
+      if (!parseResult.success) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          message:
+            "tailoredProjectBullets must be a JSON array of { projectId, bullets } objects",
         });
       }
     }),
@@ -299,6 +335,7 @@ function mapErrorForResult(error: unknown): {
 
 type JobActionExecutionOptions = {
   getProfileForRescore?: () => Promise<Record<string, unknown>>;
+  getProjectsContext?: () => Promise<string>;
   forceMoveToReady?: boolean;
   requestOrigin?: string | null;
 };
@@ -323,6 +360,17 @@ function createSharedRescoreProfileLoader(): () => Promise<
       })();
     }
     return profilePromise;
+  };
+}
+
+function createSharedProjectsContextLoader(): () => Promise<string> {
+  let contextPromise: Promise<string> | null = null;
+
+  return async () => {
+    if (!contextPromise) {
+      contextPromise = loadAllContextDocuments("projects_context");
+    }
+    return contextPromise;
   };
 }
 
@@ -438,7 +486,14 @@ async function executeJobActionForJob(
           return rawProfile as Record<string, unknown>;
         })();
 
-    const { score, reason } = await scoreJobSuitability(job, profile);
+    const projectsContext = options?.getProjectsContext
+      ? await options.getProjectsContext()
+      : await loadAllContextDocuments("projects_context");
+    const { score, reason } = await scoreJobSuitability(
+      job,
+      profile,
+      projectsContext,
+    );
 
     const updated = await jobsRepo.updateJob(job.id, {
       suitabilityScore: score,
@@ -607,7 +662,10 @@ jobsRouter.post("/actions", async (req: Request, res: Response) => {
     const requestOrigin = resolveRequestOrigin(req);
     const executionOptions: JobActionExecutionOptions = {
       ...(parsed.action === "rescore" && !isDemoMode()
-        ? { getProfileForRescore: createSharedRescoreProfileLoader() }
+        ? {
+            getProfileForRescore: createSharedRescoreProfileLoader(),
+            getProjectsContext: createSharedProjectsContextLoader(),
+          }
         : {}),
       ...(parsed.action === "move_to_ready" &&
       parsed.options?.force !== undefined
@@ -684,7 +742,10 @@ jobsRouter.post("/actions/stream", async (req: Request, res: Response) => {
   const action = parsed.data.action;
   const executionOptions: JobActionExecutionOptions = {
     ...(action === "rescore" && !isDemoMode()
-      ? { getProfileForRescore: createSharedRescoreProfileLoader() }
+      ? {
+          getProfileForRescore: createSharedRescoreProfileLoader(),
+          getProjectsContext: createSharedProjectsContextLoader(),
+        }
       : {}),
     ...(action === "move_to_ready" && parsed.data.options?.force !== undefined
       ? { forceMoveToReady: parsed.data.options.force }

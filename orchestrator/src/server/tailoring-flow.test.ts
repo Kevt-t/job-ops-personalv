@@ -49,8 +49,6 @@ describe("Tailoring Flow", () => {
     expect(pdfService.generatePdf).toHaveBeenCalledWith(
       "job-tailored-123",
       expect.objectContaining({
-        summary: "This is a manually edited summary specifically for this job.",
-        headline: "Manually Edited Headline",
         skills: ["React", "TypeScript", "Vitest"],
       }),
       "Senior TypeScript Developer", // Original JD
@@ -82,8 +80,6 @@ describe("Tailoring Flow", () => {
     expect(pdfService.generatePdf).toHaveBeenCalledWith(
       "job-raw-456",
       expect.objectContaining({
-        summary: "", // Empty if not tailored
-        headline: "",
         skills: [],
       }),
       "Junior Java Developer",

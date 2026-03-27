@@ -3,10 +3,20 @@ import { join } from "node:path";
 import { logger } from "@infra/logger";
 import { getDataDir } from "../config/dataDir";
 
-const MAX_FILE_CHARS = 6000;
-const MAX_TOTAL_CHARS = 16000;
+const DEFAULT_MAX_FILE_CHARS = 6000;
+const DEFAULT_MAX_TOTAL_CHARS = 16000;
 
-export async function loadContextDocuments(folder: string): Promise<string> {
+interface LoadOptions {
+  maxFileChars?: number;
+  maxTotalChars?: number;
+}
+
+export async function loadContextDocuments(
+  folder: string,
+  options?: LoadOptions,
+): Promise<string> {
+  const maxFileChars = options?.maxFileChars ?? DEFAULT_MAX_FILE_CHARS;
+  const maxTotalChars = options?.maxTotalChars ?? DEFAULT_MAX_TOTAL_CHARS;
   const dir = join(getDataDir(), folder);
 
   let entries: string[];
@@ -25,24 +35,24 @@ export async function loadContextDocuments(folder: string): Promise<string> {
   for (const file of mdFiles) {
     let content = await readFile(join(dir, file), "utf-8");
 
-    if (content.length > MAX_FILE_CHARS) {
+    if (maxFileChars > 0 && content.length > maxFileChars) {
       logger.warn("Context document truncated", {
         folder,
         file,
         originalChars: content.length,
-        maxChars: MAX_FILE_CHARS,
+        maxChars: maxFileChars,
       });
-      content = content.slice(0, MAX_FILE_CHARS);
+      content = content.slice(0, maxFileChars);
     }
 
     const section = `--- ${file} ---\n${content}`;
 
-    if (totalChars + section.length > MAX_TOTAL_CHARS) {
+    if (maxTotalChars > 0 && totalChars + section.length > maxTotalChars) {
       logger.warn("Context documents total size exceeded, skipping remaining", {
         folder,
         skippedFile: file,
         currentTotal: totalChars,
-        maxTotal: MAX_TOTAL_CHARS,
+        maxTotal: maxTotalChars,
       });
       break;
     }
@@ -52,4 +62,9 @@ export async function loadContextDocuments(folder: string): Promise<string> {
   }
 
   return parts.join("\n\n");
+}
+
+/** Load all context documents without truncation. */
+export function loadAllContextDocuments(folder: string): Promise<string> {
+  return loadContextDocuments(folder, { maxFileChars: 0, maxTotalChars: 0 });
 }

@@ -87,6 +87,7 @@ function applySalaryPenalty(
 export async function scoreJobSuitability(
   job: Job,
   profile: Record<string, unknown>,
+  projectsContext?: string,
 ): Promise<SuitabilityResult> {
   const [overrideModel, overrideModelScorer, settings] = await Promise.all([
     getSetting("model"),
@@ -100,9 +101,12 @@ export async function scoreJobSuitability(
     process.env.MODEL ||
     "google/gemini-3-flash-preview";
 
-  const prompt = buildScoringPrompt(job, sanitizeProfileForPrompt(profile), {
-    instructions: settings.scoringInstructions?.value ?? "",
-  });
+  const prompt = buildScoringPrompt(
+    job,
+    sanitizeProfileForPrompt(profile),
+    { instructions: settings.scoringInstructions?.value ?? "" },
+    projectsContext,
+  );
 
   const llm = new LlmService();
   const result = await llm.callJson<{ score: number; reason: string }>({
@@ -259,6 +263,7 @@ function buildScoringPrompt(
   job: Job,
   profile: Record<string, unknown>,
   preferences: ScoringPreferences,
+  projectsContext?: string,
 ): string {
   return `You are evaluating a job listing for a candidate. Score how suitable this job is for the candidate on a scale of 0-100.
 
@@ -271,6 +276,7 @@ SCORING CRITERIA:
 
 CANDIDATE PROFILE:
 ${JSON.stringify(profile, null, 2)}
+${projectsContext ? `\nDETAILED PROJECT WRITE-UPS:\n${projectsContext}` : ""}
 
 JOB LISTING:
 Title: ${job.title}
@@ -390,12 +396,13 @@ async function mockScore(
 export async function scoreAndRankJobs(
   jobs: Job[],
   profile: Record<string, unknown>,
+  projectsContext?: string,
 ): Promise<
   Array<Job & { suitabilityScore: number; suitabilityReason: string }>
 > {
   const scoredJobs = await Promise.all(
     jobs.map(async (job) => {
-      const { score, reason } = await scoreJobSuitability(job, profile);
+      const { score, reason } = await scoreJobSuitability(job, profile, projectsContext);
       return {
         ...job,
         suitabilityScore: score,

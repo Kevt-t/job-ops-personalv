@@ -1,6 +1,6 @@
 import * as api from "@client/api";
-import { useRole } from "@client/hooks/useRole";
 import { useProfile } from "@client/hooks/useProfile";
+import { useRole } from "@client/hooks/useRole";
 import type { Job } from "@shared/types.js";
 import { ArrowLeft, Check, FileText, Loader2, Sparkles } from "lucide-react";
 import type React from "react";
@@ -11,11 +11,12 @@ import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import {
   fromEditableSkillGroups,
-  getOriginalHeadline,
   getOriginalSkills,
-  getOriginalSummary,
+  parseTailoredProjectBullets,
   parseTailoredSkills,
+  serializeTailoredProjectBullets,
   serializeTailoredSkills,
+  toEditableProjectBullets,
   toEditableSkillGroups,
 } from "../tailoring-utils";
 import { canFinalizeTailoring } from "./rules";
@@ -48,18 +49,19 @@ type TailoringWorkspaceProps =
 type TailoringSectionsProps = ComponentProps<typeof TailoringSections>;
 
 interface TailoringBaseline {
-  summary: string;
-  headline: string;
   skillsJson: string;
+  bulletsJson: string;
 }
 
 const normalizeSkillsJson = (value: string | null | undefined) =>
   serializeTailoredSkills(parseTailoredSkills(value));
 
+const normalizeBulletsJson = (value: string | null | undefined) =>
+  serializeTailoredProjectBullets(parseTailoredProjectBullets(value));
+
 const toBaselineFromJob = (job: Job): TailoringBaseline => ({
-  summary: job.tailoredSummary ?? "",
-  headline: job.tailoredHeadline ?? "",
   skillsJson: normalizeSkillsJson(job.tailoredSkills),
+  bulletsJson: normalizeBulletsJson(job.tailoredProjectBullets),
 });
 
 export const TailoringWorkspace: React.FC<TailoringWorkspaceProps> = (
@@ -71,10 +73,6 @@ export const TailoringWorkspace: React.FC<TailoringWorkspaceProps> = (
   const {
     catalog,
     isCatalogLoading,
-    summary,
-    setSummary,
-    headline,
-    setHeadline,
     jobDescription,
     setJobDescription,
     selectedIds,
@@ -90,6 +88,10 @@ export const TailoringWorkspace: React.FC<TailoringWorkspaceProps> = (
     handleAddSkillGroup,
     handleUpdateSkillGroup,
     handleRemoveSkillGroup,
+    bulletsDraft,
+    setBulletsDraft,
+    bulletsJson,
+    handleUpdateProjectBullet,
   } = useTailoringDraft({
     job: props.job,
     onDirtyChange: props.onDirtyChange,
@@ -105,8 +107,6 @@ export const TailoringWorkspace: React.FC<TailoringWorkspaceProps> = (
   const originalValues = useMemo(() => {
     const skillsDraft = toEditableSkillGroups(getOriginalSkills(profile));
     return {
-      summary: getOriginalSummary(profile),
-      headline: getOriginalHeadline(profile),
       skillsDraft,
       skillsJson: serializeTailoredSkills(fromEditableSkillGroups(skillsDraft)),
     };
@@ -118,31 +118,19 @@ export const TailoringWorkspace: React.FC<TailoringWorkspaceProps> = (
 
   useEffect(() => {
     setAiBaseline({
-      summary: props.job.tailoredSummary ?? "",
-      headline: props.job.tailoredHeadline ?? "",
       skillsJson: normalizeSkillsJson(props.job.tailoredSkills),
+      bulletsJson: normalizeBulletsJson(props.job.tailoredProjectBullets),
     });
-  }, [
-    props.job.tailoredSummary,
-    props.job.tailoredHeadline,
-    props.job.tailoredSkills,
-  ]);
+  }, [props.job.tailoredSkills, props.job.tailoredProjectBullets]);
 
   const savePayload = useMemo(
     () => ({
-      tailoredSummary: summary,
-      tailoredHeadline: headline,
       tailoredSkills: skillsJson,
+      tailoredProjectBullets: bulletsJson,
       jobDescription,
       selectedProjectIds: selectedIdsCsv,
     }),
-    [
-      summary,
-      headline,
-      skillsJson,
-      jobDescription,
-      selectedIdsCsv,
-    ],
+    [skillsJson, bulletsJson, jobDescription, selectedIdsCsv],
   );
 
   const persistCurrent = useCallback(async () => {
@@ -277,25 +265,9 @@ export const TailoringWorkspace: React.FC<TailoringWorkspaceProps> = (
     tailorProps.onFinalize();
   }, [tailorProps, isDirty, persistCurrent]);
 
-  const handleUndoSummary = useCallback(() => {
-    setSummary(originalValues.summary);
-  }, [originalValues.summary, setSummary]);
-
-  const handleUndoHeadline = useCallback(() => {
-    setHeadline(originalValues.headline);
-  }, [originalValues.headline, setHeadline]);
-
   const handleUndoSkills = useCallback(() => {
     setSkillsDraft(originalValues.skillsDraft);
   }, [originalValues.skillsDraft, setSkillsDraft]);
-
-  const handleRedoSummary = useCallback(() => {
-    setSummary(aiBaseline.summary);
-  }, [aiBaseline.summary, setSummary]);
-
-  const handleRedoHeadline = useCallback(() => {
-    setHeadline(aiBaseline.headline);
-  }, [aiBaseline.headline, setHeadline]);
 
   const handleRedoSkills = useCallback(() => {
     setSkillsDraft(
@@ -303,40 +275,43 @@ export const TailoringWorkspace: React.FC<TailoringWorkspaceProps> = (
     );
   }, [aiBaseline.skillsJson, setSkillsDraft]);
 
+  const handleUndoBullets = useCallback(() => {
+    setBulletsDraft((prev) =>
+      prev.map((entry) => ({ ...entry, bulletsText: "" })),
+    );
+  }, [setBulletsDraft]);
+
+  const handleRedoBullets = useCallback(() => {
+    const parsed = parseTailoredProjectBullets(aiBaseline.bulletsJson);
+    setBulletsDraft((prev) => {
+      const catalogLike = prev.map((e) => ({
+        id: e.projectId,
+        name: e.projectName,
+      }));
+      return toEditableProjectBullets(parsed, catalogLike, selectedIds);
+    });
+  }, [aiBaseline.bulletsJson, setBulletsDraft, selectedIds]);
+
   const disableInputs = !canMutate
     ? true
     : editorProps
       ? isSummarizing || isGeneratingPdf || isSaving
       : isGenerating || Boolean(tailorProps?.isFinalizing) || isSaving;
 
-  const canFinalize = canFinalizeTailoring(summary);
+  const canFinalize = canFinalizeTailoring();
   const tailoringSectionsProps = useMemo<TailoringSectionsProps>(
     () => ({
       catalog,
       isCatalogLoading,
-      summary,
-      headline,
       jobDescription,
       skillsDraft,
       selectedIds,
       openSkillGroupId,
       disableInputs,
-      onSummaryChange: setSummary,
-      onHeadlineChange: setHeadline,
-      onUndoSummary: handleUndoSummary,
-      onUndoHeadline: handleUndoHeadline,
       onUndoSkills: handleUndoSkills,
-      onRedoSummary: handleRedoSummary,
-      onRedoHeadline: handleRedoHeadline,
       onRedoSkills: handleRedoSkills,
-      canUndoSummary:
-        canUseOriginalValues && summary !== originalValues.summary,
-      canUndoHeadline:
-        canUseOriginalValues && headline !== originalValues.headline,
       canUndoSkills:
         canUseOriginalValues && skillsJson !== originalValues.skillsJson,
-      canRedoSummary: summary !== aiBaseline.summary,
-      canRedoHeadline: headline !== aiBaseline.headline,
       canRedoSkills: skillsJson !== aiBaseline.skillsJson,
       undoDisabledReason: canUseOriginalValues
         ? null
@@ -347,24 +322,22 @@ export const TailoringWorkspace: React.FC<TailoringWorkspaceProps> = (
       onUpdateSkillGroup: handleUpdateSkillGroup,
       onRemoveSkillGroup: handleRemoveSkillGroup,
       onToggleProject: handleToggleProject,
+      bulletsDraft,
+      onUpdateProjectBullet: handleUpdateProjectBullet,
+      onUndoBullets: handleUndoBullets,
+      onRedoBullets: handleRedoBullets,
+      canUndoBullets: bulletsDraft.some((e) => e.bulletsText.trim().length > 0),
+      canRedoBullets: bulletsJson !== aiBaseline.bulletsJson,
     }),
     [
       catalog,
       isCatalogLoading,
-      summary,
-      headline,
       jobDescription,
       skillsDraft,
       selectedIds,
       openSkillGroupId,
       disableInputs,
-      setSummary,
-      setHeadline,
-      handleUndoSummary,
-      handleUndoHeadline,
       handleUndoSkills,
-      handleRedoSummary,
-      handleRedoHeadline,
       handleRedoSkills,
       canUseOriginalValues,
       originalValues,
@@ -376,6 +349,11 @@ export const TailoringWorkspace: React.FC<TailoringWorkspaceProps> = (
       handleUpdateSkillGroup,
       handleRemoveSkillGroup,
       handleToggleProject,
+      bulletsDraft,
+      bulletsJson,
+      handleUpdateProjectBullet,
+      handleUndoBullets,
+      handleRedoBullets,
     ],
   );
 
@@ -391,7 +369,9 @@ export const TailoringWorkspace: React.FC<TailoringWorkspaceProps> = (
               size="sm"
               variant="outline"
               onClick={handleSummarizeEditor}
-              disabled={!canMutate || isSummarizing || isGeneratingPdf || isSaving}
+              disabled={
+                !canMutate || isSummarizing || isGeneratingPdf || isSaving
+              }
               className="w-full sm:w-auto"
             >
               {isSummarizing ? (
@@ -405,11 +385,7 @@ export const TailoringWorkspace: React.FC<TailoringWorkspaceProps> = (
               size="sm"
               onClick={handleGeneratePdf}
               disabled={
-                !canMutate ||
-                isSummarizing ||
-                isGeneratingPdf ||
-                isSaving ||
-                !summary
+                !canMutate || isSummarizing || isGeneratingPdf || isSaving
               }
               className="w-full sm:w-auto"
             >
@@ -473,7 +449,7 @@ export const TailoringWorkspace: React.FC<TailoringWorkspaceProps> = (
               </span>
             </div>
             <p className="ml-4 mt-1 text-[10px] text-muted-foreground">
-              AI can draft summary, headline, skills, and project selection.
+              AI can draft skills and project selection.
             </p>
           </div>
 
@@ -481,7 +457,9 @@ export const TailoringWorkspace: React.FC<TailoringWorkspaceProps> = (
             size="sm"
             variant="outline"
             onClick={handleGenerateWithAi}
-            disabled={!canMutate || isGenerating || tailorProps.isFinalizing || isSaving}
+            disabled={
+              !canMutate || isGenerating || tailorProps.isFinalizing || isSaving
+            }
             className="h-8 w-full text-xs sm:w-auto"
           >
             {isGenerating ? (
@@ -499,12 +477,6 @@ export const TailoringWorkspace: React.FC<TailoringWorkspaceProps> = (
       <Separator className="my-4 opacity-50" />
 
       <div className="space-y-2">
-        {!canFinalize && (
-          <p className="text-center text-[10px] text-muted-foreground">
-            Add a summary to{" "}
-            {finalizeVariant === "ready" ? "regenerate" : "finalize"}.
-          </p>
-        )}
         <Button
           onClick={() => void handleFinalize()}
           disabled={

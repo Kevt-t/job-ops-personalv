@@ -14,9 +14,13 @@ export type TailoredSkillsInput =
   | null
   | undefined;
 
+export type TailoredProjectBulletsInput =
+  | Array<{ projectId: string; bullets: string[] }>
+  | string
+  | null
+  | undefined;
+
 export type TailorChunkInput = {
-  headline?: string | null;
-  summary?: string | null;
   skills?: TailoredSkillsInput;
 };
 
@@ -419,20 +423,85 @@ export function applyProjectVisibility(args: {
   }
 }
 
+function escapeHtml(text: string): string {
+  return text
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;");
+}
+
+export function bulletsToHtml(bullets: string[]): string {
+  const items = bullets.map((b) => `<li><p>${escapeHtml(b)}</p></li>`).join("");
+  return `<ul>${items}</ul>`;
+}
+
+function parseTailoredProjectBullets(
+  input: TailoredProjectBulletsInput,
+): Array<{ projectId: string; bullets: string[] }> | null {
+  if (!input) return null;
+  let parsed: unknown;
+  try {
+    parsed = Array.isArray(input)
+      ? input
+      : typeof input === "string"
+        ? (JSON.parse(input) as unknown)
+        : null;
+  } catch {
+    return null;
+  }
+  if (!Array.isArray(parsed)) return null;
+  return parsed.filter(
+    (item) =>
+      item &&
+      typeof item === "object" &&
+      typeof item.projectId === "string" &&
+      Array.isArray(item.bullets),
+  ) as Array<{ projectId: string; bullets: string[] }>;
+}
+
+export function applyTailoredProjectBullets(
+  mode: RxResumeMode,
+  resumeData: RecordLike,
+  projectBullets?: TailoredProjectBulletsInput,
+): void {
+  const parsed = parseTailoredProjectBullets(projectBullets);
+  if (!parsed || parsed.length === 0) return;
+
+  const bulletMap = new Map<string, string[]>();
+  for (const entry of parsed) {
+    if (entry.bullets.length > 0) {
+      bulletMap.set(entry.projectId, entry.bullets);
+    }
+  }
+  if (bulletMap.size === 0) return;
+
+  const sections = asRecord(resumeData.sections);
+  const projectsSection = asRecord(sections?.projects);
+  const items = asArray(projectsSection?.items);
+  if (!items) return;
+
+  for (const raw of items) {
+    const item = asRecord(raw);
+    if (!item) continue;
+    const id = typeof item.id === "string" ? item.id : "";
+    if (!id) continue;
+    const bullets = bulletMap.get(id);
+    if (!bullets || bullets.length === 0) continue;
+
+    const html = bulletsToHtml(bullets);
+    if (mode === "v5") {
+      item.description = html;
+    } else {
+      item.summary = html;
+    }
+  }
+}
+
 export function applyTailoredChunks(args: {
   mode: RxResumeMode;
   resumeData: RecordLike;
   tailoredContent: TailorChunkInput;
 }): void {
   applyTailoredSkills(args.mode, args.resumeData, args.tailoredContent.skills);
-  applyTailoredSummary(
-    args.mode,
-    args.resumeData,
-    args.tailoredContent.summary,
-  );
-  applyTailoredHeadline(
-    args.mode,
-    args.resumeData,
-    args.tailoredContent.headline,
-  );
 }

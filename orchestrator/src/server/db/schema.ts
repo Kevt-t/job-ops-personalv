@@ -95,6 +95,7 @@ export const jobs = pgTable("jobs", {
   tailoredHeadline: text("tailored_headline"),
   tailoredSkills: text("tailored_skills"),
   selectedProjectIds: text("selected_project_ids"),
+  tailoredProjectBullets: text("tailored_project_bullets"),
   pdfPath: text("pdf_path"),
   tracerLinksEnabled: boolean("tracer_links_enabled")
     .notNull()
