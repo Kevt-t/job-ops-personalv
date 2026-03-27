@@ -1,6 +1,7 @@
 import { logger } from "@infra/logger";
 import * as jobsRepo from "@server/repositories/jobs";
 import * as settingsRepo from "@server/repositories/settings";
+import { loadAllContextDocuments } from "@server/services/context-documents";
 import { scoreJobSuitability } from "@server/services/scorer";
 import { asyncPool } from "@server/utils/async-pool";
 import type { Job } from "@shared/types";
@@ -14,7 +15,10 @@ export async function scoreJobsStep(args: {
   shouldCancel?: () => boolean;
 }): Promise<{ unprocessedJobs: Job[]; scoredJobs: ScoredJob[] }> {
   logger.info("Running scoring step");
-  const unprocessedJobs = await jobsRepo.getUnscoredDiscoveredJobs();
+  const [unprocessedJobs, projectsContext] = await Promise.all([
+    jobsRepo.getUnscoredDiscoveredJobs(),
+    loadAllContextDocuments("projects_context"),
+  ]);
 
   // Check if auto-skip threshold is configured
   const autoSkipThresholdRaw = await settingsRepo.getSetting(
@@ -62,7 +66,7 @@ export async function scoreJobsStep(args: {
         return;
       }
 
-      const { score, reason } = await scoreJobSuitability(job, args.profile);
+      const { score, reason } = await scoreJobSuitability(job, args.profile, projectsContext);
       if (args.shouldCancel?.()) return;
 
       // Check if job should be auto-skipped based on score threshold

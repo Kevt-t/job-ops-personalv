@@ -15,8 +15,10 @@ import { getDataDir } from "../config/dataDir";
 import * as jobsRepo from "../repositories/jobs";
 import * as pipelineRepo from "../repositories/pipeline";
 import { getSetting } from "../repositories/settings";
+import { loadAllContextDocuments } from "../services/context-documents";
 import { generatePdf } from "../services/pdf";
 import { getProfile } from "../services/profile";
+import { generateProjectBullets } from "../services/projectBullets";
 import { pickProjectIdsForJob } from "../services/projectSelection";
 import {
   extractProjectsFromProfile,
@@ -243,7 +245,10 @@ export async function summarizeJob(
       const job = await jobsRepo.getJobById(jobId);
       if (!job) return { success: false, error: "Job not found" };
 
-      const profile = await getProfile();
+      const [profile, projectsContext] = await Promise.all([
+        getProfile(),
+        loadAllContextDocuments("projects_context"),
+      ]);
 
       // 1. Generate Tailoring (skills)
       let tailoredSkills = job.tailoredSkills;
@@ -265,12 +270,12 @@ export async function summarizeJob(
       }
 
       // 2. Suggest Projects
+      const { catalog, selectionItems } = extractProjectsFromProfile(profile);
+
       let selectedProjectIds = job.selectedProjectIds;
       if (!selectedProjectIds || options?.force) {
         jobLogger.info("Selecting projects");
         try {
-          const { catalog, selectionItems } =
-            extractProjectsFromProfile(profile);
           const overrideResumeProjectsRaw = await getSetting("resumeProjects");
           const { resumeProjects } = resolveResumeProjectsSettings({
             catalog,
@@ -291,6 +296,7 @@ export async function summarizeJob(
             jobDescription: job.jobDescription || "",
             eligibleProjects,
             desiredCount,
+            projectsContext,
           });
 
           selectedProjectIds = [...locked, ...picked].join(",");
@@ -299,9 +305,39 @@ export async function summarizeJob(
         }
       }
 
+      // 3. Generate tailored project bullets
+      let tailoredProjectBullets = job.tailoredProjectBullets;
+      if (!tailoredProjectBullets || options?.force) {
+        jobLogger.info("Generating project bullets");
+        try {
+          const selectedIdSet = new Set(
+            (selectedProjectIds || "").split(",").filter(Boolean),
+          );
+          const selectedProjects = selectionItems
+            .filter((p) => selectedIdSet.has(p.id))
+            .map((p) => ({
+              id: p.id,
+              name: p.name,
+              summaryText: p.summaryText,
+            }));
+
+          const bulletsResult = await generateProjectBullets({
+            jobDescription: job.jobDescription || "",
+            selectedProjects,
+            projectsContext,
+          });
+          if (bulletsResult.success && bulletsResult.data) {
+            tailoredProjectBullets = JSON.stringify(bulletsResult.data);
+          }
+        } catch (error) {
+          jobLogger.warn("Failed to generate project bullets", error);
+        }
+      }
+
       await jobsRepo.updateJob(job.id, {
         tailoredSkills: tailoredSkills ?? undefined,
         selectedProjectIds: selectedProjectIds ?? undefined,
+        tailoredProjectBullets: tailoredProjectBullets ?? undefined,
       });
 
       return { success: true };
@@ -337,6 +373,7 @@ export async function generateFinalPdf(
         job.id,
         {
           skills: job.tailoredSkills ? JSON.parse(job.tailoredSkills) : [],
+          projectBullets: job.tailoredProjectBullets || null,
         },
         job.jobDescription || "",
         undefined, // deprecated baseResumePath parameter

@@ -15,7 +15,10 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip";
 import { ProjectSelector } from "../discovered-panel/ProjectSelector";
-import type { EditableSkillGroup } from "../tailoring-utils";
+import type {
+  EditableProjectBullet,
+  EditableSkillGroup,
+} from "../tailoring-utils";
 
 interface TailoringSectionsProps {
   catalog: ResumeProjectCatalogItem[];
@@ -40,6 +43,12 @@ interface TailoringSectionsProps {
   ) => void;
   onRemoveSkillGroup: (id: string) => void;
   onToggleProject: (id: string) => void;
+  bulletsDraft: EditableProjectBullet[];
+  onUpdateProjectBullet: (projectId: string, bulletsText: string) => void;
+  onUndoBullets: () => void;
+  onRedoBullets: () => void;
+  canUndoBullets: boolean;
+  canRedoBullets: boolean;
 }
 
 const sectionClass = "rounded-lg border border-border/60 bg-muted/20 px-0";
@@ -67,6 +76,12 @@ export const TailoringSections: React.FC<TailoringSectionsProps> = ({
   onUpdateSkillGroup,
   onRemoveSkillGroup,
   onToggleProject,
+  bulletsDraft,
+  onUpdateProjectBullet,
+  onUndoBullets,
+  onRedoBullets,
+  canUndoBullets,
+  canRedoBullets,
 }) => {
   const undoTooltip = "Undo to template";
   const redoTooltip = "Redo to AI draft";
@@ -254,6 +269,76 @@ export const TailoringSections: React.FC<TailoringSectionsProps> = ({
                 maxProjects={3}
                 disabled={disableInputs}
               />
+            </AccordionContent>
+          </AccordionItem>
+        )}
+
+        {bulletsDraft.length > 0 && (
+          <AccordionItem value="project-bullets" className={sectionClass}>
+            <AccordionTrigger className={triggerClass}>
+              Project Bullets
+            </AccordionTrigger>
+            <AccordionContent className="px-3 pb-3 pt-1">
+              <div className="flex flex-wrap items-center justify-end gap-2 pb-2">
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button
+                      type="button"
+                      size="icon"
+                      variant="ghost"
+                      className="h-7 w-7"
+                      onClick={onUndoBullets}
+                      disabled={disableInputs || !canUndoBullets}
+                      aria-label="Clear all bullets"
+                    >
+                      <Undo2 className="h-3.5 w-3.5" />
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent>Clear all bullets</TooltipContent>
+                </Tooltip>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button
+                      type="button"
+                      size="icon"
+                      variant="ghost"
+                      className="h-7 w-7"
+                      onClick={onRedoBullets}
+                      disabled={disableInputs || !canRedoBullets}
+                      aria-label="Redo to AI draft"
+                    >
+                      <Redo2 className="h-3.5 w-3.5" />
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent>Redo to AI draft</TooltipContent>
+                </Tooltip>
+              </div>
+
+              <div className="space-y-3">
+                {bulletsDraft.map((entry) => (
+                  <div key={entry.projectId} className="space-y-1">
+                    <label
+                      htmlFor={`tailor-bullets-${entry.projectId}`}
+                      className="text-[11px] font-medium text-muted-foreground"
+                    >
+                      {entry.projectName}
+                    </label>
+                    <textarea
+                      id={`tailor-bullets-${entry.projectId}`}
+                      className={`${inputClass} min-h-[88px]`}
+                      value={entry.bulletsText}
+                      onChange={(event) =>
+                        onUpdateProjectBullet(
+                          entry.projectId,
+                          event.target.value,
+                        )
+                      }
+                      placeholder="One bullet point per line..."
+                      disabled={disableInputs}
+                    />
+                  </div>
+                ))}
+              </div>
             </AccordionContent>
           </AccordionItem>
         )}

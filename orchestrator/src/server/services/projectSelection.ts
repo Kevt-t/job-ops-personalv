@@ -28,6 +28,7 @@ export async function pickProjectIdsForJob(args: {
   jobDescription: string;
   eligibleProjects: ResumeProjectSelectionItem[];
   desiredCount: number;
+  projectsContext?: string;
 }): Promise<string[]> {
   const desiredCount = Math.max(0, Math.floor(args.desiredCount));
   if (desiredCount === 0) return [];
@@ -50,6 +51,7 @@ export async function pickProjectIdsForJob(args: {
     jobDescription: args.jobDescription,
     projects: args.eligibleProjects,
     desiredCount,
+    projectsContext: args.projectsContext,
   });
 
   const llm = new LlmService();
@@ -100,6 +102,7 @@ function buildProjectSelectionPrompt(args: {
   jobDescription: string;
   projects: ResumeProjectSelectionItem[];
   desiredCount: number;
+  projectsContext?: string;
 }): string {
   const projects = args.projects.map((p) => ({
     id: p.id,
@@ -124,6 +127,7 @@ ${args.jobDescription}
 
 Candidate projects (pick from these IDs only):
 ${JSON.stringify(projects, null, 2)}
+${args.projectsContext ? `\nDETAILED PROJECT WRITE-UPS (use these to better understand each project's depth and relevance):\n${args.projectsContext}` : ""}
 
 Respond with JSON only, in this exact shape:
 {

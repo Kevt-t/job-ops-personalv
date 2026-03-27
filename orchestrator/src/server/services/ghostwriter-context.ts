@@ -13,7 +13,7 @@ import {
   stripLanguageDirectivesFromConstraints,
   type WritingStyle,
 } from "./writing-style";
-import { loadContextDocuments } from "./context-documents";
+import { loadAllContextDocuments } from "./context-documents";
 
 export type JobChatPromptContext = {
   job: Job;
@@ -161,7 +161,7 @@ export async function buildJobChatPromptContext(
   const profileSnapshot = buildProfileSnapshot(profile);
   const systemPrompt = buildSystemPrompt(style, profile);
   const jobSnapshot = buildJobSnapshot(job);
-  const projectsContext = await loadContextDocuments("projects_context");
+  const projectsContext = await loadAllContextDocuments("projects_context");
 
   if (!jobSnapshot.trim()) {
     throw badRequest("Unable to build job context");

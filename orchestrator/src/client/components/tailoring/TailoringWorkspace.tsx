@@ -1,6 +1,6 @@
 import * as api from "@client/api";
-import { useRole } from "@client/hooks/useRole";
 import { useProfile } from "@client/hooks/useProfile";
+import { useRole } from "@client/hooks/useRole";
 import type { Job } from "@shared/types.js";
 import { ArrowLeft, Check, FileText, Loader2, Sparkles } from "lucide-react";
 import type React from "react";
@@ -12,8 +12,11 @@ import { Separator } from "@/components/ui/separator";
 import {
   fromEditableSkillGroups,
   getOriginalSkills,
+  parseTailoredProjectBullets,
   parseTailoredSkills,
+  serializeTailoredProjectBullets,
   serializeTailoredSkills,
+  toEditableProjectBullets,
   toEditableSkillGroups,
 } from "../tailoring-utils";
 import { canFinalizeTailoring } from "./rules";
@@ -47,13 +50,18 @@ type TailoringSectionsProps = ComponentProps<typeof TailoringSections>;
 
 interface TailoringBaseline {
   skillsJson: string;
+  bulletsJson: string;
 }
 
 const normalizeSkillsJson = (value: string | null | undefined) =>
   serializeTailoredSkills(parseTailoredSkills(value));
 
+const normalizeBulletsJson = (value: string | null | undefined) =>
+  serializeTailoredProjectBullets(parseTailoredProjectBullets(value));
+
 const toBaselineFromJob = (job: Job): TailoringBaseline => ({
   skillsJson: normalizeSkillsJson(job.tailoredSkills),
+  bulletsJson: normalizeBulletsJson(job.tailoredProjectBullets),
 });
 
 export const TailoringWorkspace: React.FC<TailoringWorkspaceProps> = (
@@ -80,6 +88,10 @@ export const TailoringWorkspace: React.FC<TailoringWorkspaceProps> = (
     handleAddSkillGroup,
     handleUpdateSkillGroup,
     handleRemoveSkillGroup,
+    bulletsDraft,
+    setBulletsDraft,
+    bulletsJson,
+    handleUpdateProjectBullet,
   } = useTailoringDraft({
     job: props.job,
     onDirtyChange: props.onDirtyChange,
@@ -107,20 +119,18 @@ export const TailoringWorkspace: React.FC<TailoringWorkspaceProps> = (
   useEffect(() => {
     setAiBaseline({
       skillsJson: normalizeSkillsJson(props.job.tailoredSkills),
+      bulletsJson: normalizeBulletsJson(props.job.tailoredProjectBullets),
     });
-  }, [props.job.tailoredSkills]);
+  }, [props.job.tailoredSkills, props.job.tailoredProjectBullets]);
 
   const savePayload = useMemo(
     () => ({
       tailoredSkills: skillsJson,
+      tailoredProjectBullets: bulletsJson,
       jobDescription,
       selectedProjectIds: selectedIdsCsv,
     }),
-    [
-      skillsJson,
-      jobDescription,
-      selectedIdsCsv,
-    ],
+    [skillsJson, bulletsJson, jobDescription, selectedIdsCsv],
   );
 
   const persistCurrent = useCallback(async () => {
@@ -265,6 +275,23 @@ export const TailoringWorkspace: React.FC<TailoringWorkspaceProps> = (
     );
   }, [aiBaseline.skillsJson, setSkillsDraft]);
 
+  const handleUndoBullets = useCallback(() => {
+    setBulletsDraft((prev) =>
+      prev.map((entry) => ({ ...entry, bulletsText: "" })),
+    );
+  }, [setBulletsDraft]);
+
+  const handleRedoBullets = useCallback(() => {
+    const parsed = parseTailoredProjectBullets(aiBaseline.bulletsJson);
+    setBulletsDraft((prev) => {
+      const catalogLike = prev.map((e) => ({
+        id: e.projectId,
+        name: e.projectName,
+      }));
+      return toEditableProjectBullets(parsed, catalogLike, selectedIds);
+    });
+  }, [aiBaseline.bulletsJson, setBulletsDraft, selectedIds]);
+
   const disableInputs = !canMutate
     ? true
     : editorProps
@@ -295,6 +322,12 @@ export const TailoringWorkspace: React.FC<TailoringWorkspaceProps> = (
       onUpdateSkillGroup: handleUpdateSkillGroup,
       onRemoveSkillGroup: handleRemoveSkillGroup,
       onToggleProject: handleToggleProject,
+      bulletsDraft,
+      onUpdateProjectBullet: handleUpdateProjectBullet,
+      onUndoBullets: handleUndoBullets,
+      onRedoBullets: handleRedoBullets,
+      canUndoBullets: bulletsDraft.some((e) => e.bulletsText.trim().length > 0),
+      canRedoBullets: bulletsJson !== aiBaseline.bulletsJson,
     }),
     [
       catalog,
@@ -316,6 +349,11 @@ export const TailoringWorkspace: React.FC<TailoringWorkspaceProps> = (
       handleUpdateSkillGroup,
       handleRemoveSkillGroup,
       handleToggleProject,
+      bulletsDraft,
+      bulletsJson,
+      handleUpdateProjectBullet,
+      handleUndoBullets,
+      handleRedoBullets,
     ],
   );
 
@@ -331,7 +369,9 @@ export const TailoringWorkspace: React.FC<TailoringWorkspaceProps> = (
               size="sm"
               variant="outline"
               onClick={handleSummarizeEditor}
-              disabled={!canMutate || isSummarizing || isGeneratingPdf || isSaving}
+              disabled={
+                !canMutate || isSummarizing || isGeneratingPdf || isSaving
+              }
               className="w-full sm:w-auto"
             >
               {isSummarizing ? (
@@ -345,10 +385,7 @@ export const TailoringWorkspace: React.FC<TailoringWorkspaceProps> = (
               size="sm"
               onClick={handleGeneratePdf}
               disabled={
-                !canMutate ||
-                isSummarizing ||
-                isGeneratingPdf ||
-                isSaving
+                !canMutate || isSummarizing || isGeneratingPdf || isSaving
               }
               className="w-full sm:w-auto"
             >
@@ -420,7 +457,9 @@ export const TailoringWorkspace: React.FC<TailoringWorkspaceProps> = (
             size="sm"
             variant="outline"
             onClick={handleGenerateWithAi}
-            disabled={!canMutate || isGenerating || tailorProps.isFinalizing || isSaving}
+            disabled={
+              !canMutate || isGenerating || tailorProps.isFinalizing || isSaving
+            }
             className="h-8 w-full text-xs sm:w-auto"
           >
             {isGenerating ? (

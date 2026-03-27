@@ -1,4 +1,5 @@
 import { getSetting } from "@server/repositories/settings";
+import { loadAllContextDocuments } from "@server/services/context-documents";
 import { pickProjectIdsForJob } from "@server/services/projectSelection";
 import { resolveResumeProjectsSettings } from "@server/services/resumeProjects";
 import { settingsRegistry } from "@shared/settings-registry";
@@ -11,6 +12,7 @@ import {
 import {
   applyProjectVisibility,
   applyTailoredChunks,
+  applyTailoredProjectBullets,
   cloneResumeData,
   extractProjectsFromResume as extractProjectsFromResumeByMode,
   inferRxResumeModeFromData,
@@ -390,6 +392,7 @@ export async function prepareTailoredResumeForPdf(args: {
     summary?: string | null;
     headline?: string | null;
     skills?: TailoredSkillsInput;
+    projectBullets?: string | null;
   };
   jobDescription: string;
   selectedProjectIds?: string | null;
@@ -436,10 +439,12 @@ export async function prepareTailoredResumeForPdf(args: {
     const eligibleProjects = selectionItems.filter((p) =>
       eligibleSet.has(p.id),
     );
+    const projectsContext = await loadAllContextDocuments("projects_context");
     const picked = await pickProjectIdsForJob({
       jobDescription: args.jobDescription,
       eligibleProjects,
       desiredCount,
+      projectsContext,
     });
     selectedIds = [...locked, ...picked];
   }
@@ -450,6 +455,12 @@ export async function prepareTailoredResumeForPdf(args: {
     selectedProjectIds: new Set(selectedIds),
     forceVisibleProjectsSection: args.forceVisibleProjectsSection,
   });
+
+  applyTailoredProjectBullets(
+    mode,
+    workingCopy,
+    args.tailoredContent.projectBullets,
+  );
 
   return {
     mode,

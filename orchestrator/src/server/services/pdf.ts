@@ -28,6 +28,7 @@ export interface PdfResult {
 
 export interface TailoredPdfContent {
   skills?: Array<{ name: string; keywords: string[] }> | null;
+  projectBullets?: string | null;
 }
 
 export interface GeneratePdfOptions {

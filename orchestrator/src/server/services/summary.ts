@@ -180,9 +180,3 @@ OUTPUT FORMAT (JSON):
 }
 `;
 }
-
-function sanitizeText(text: string): string {
-  return text
-    .replace(/\*\*[\s\S]*?\*\*/g, "") // remove markdown bold
-    .trim();
-}

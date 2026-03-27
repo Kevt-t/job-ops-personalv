@@ -3,10 +3,15 @@ import type { Job, ResumeProjectCatalogItem } from "@shared/types.js";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   createTailoredSkillDraftId,
+  type EditableProjectBullet,
   type EditableSkillGroup,
+  fromEditableProjectBullets,
   fromEditableSkillGroups,
+  parseTailoredProjectBullets,
   parseTailoredSkills,
+  serializeTailoredProjectBullets,
   serializeTailoredSkills,
+  toEditableProjectBullets,
   toEditableSkillGroups,
 } from "../tailoring-utils";
 
@@ -30,12 +35,22 @@ const parseIncomingDraft = (incomingJob: Job) => {
   const skillsJson = serializeTailoredSkills(
     fromEditableSkillGroups(skillsDraft),
   );
+  const parsedBullets = parseTailoredProjectBullets(
+    incomingJob.tailoredProjectBullets,
+  );
+  const bulletsJson = serializeTailoredProjectBullets(
+    fromEditableProjectBullets(
+      toEditableProjectBullets(parsedBullets, [], selectedIds),
+    ),
+  );
 
   return {
     description,
     selectedIds,
     skillsDraft,
     skillsJson,
+    parsedBullets,
+    bulletsJson,
   };
 };
 
@@ -60,6 +75,13 @@ export function useTailoringDraft({
     toEditableSkillGroups(parseTailoredSkills(job.tailoredSkills)),
   );
   const [openSkillGroupId, setOpenSkillGroupId] = useState<string>("");
+  const [bulletsDraft, setBulletsDraft] = useState<EditableProjectBullet[]>(
+    () => {
+      const parsed = parseTailoredProjectBullets(job.tailoredProjectBullets);
+      const ids = parseSelectedIds(job.selectedProjectIds);
+      return toEditableProjectBullets(parsed, [], ids);
+    },
+  );
 
   const [savedDescription, setSavedDescription] = useState(
     job.jobDescription || "",
@@ -70,6 +92,13 @@ export function useTailoringDraft({
   const [savedSkillsJson, setSavedSkillsJson] = useState(() =>
     serializeTailoredSkills(parseTailoredSkills(job.tailoredSkills)),
   );
+  const [savedBulletsJson, setSavedBulletsJson] = useState(() => {
+    const parsed = parseTailoredProjectBullets(job.tailoredProjectBullets);
+    const ids = parseSelectedIds(job.selectedProjectIds);
+    return serializeTailoredProjectBullets(
+      fromEditableProjectBullets(toEditableProjectBullets(parsed, [], ids)),
+    );
+  });
 
   const lastJobIdRef = useRef(job.id);
   const jobRef = useRef(job);
@@ -77,6 +106,12 @@ export function useTailoringDraft({
   const skillsJson = useMemo(
     () => serializeTailoredSkills(fromEditableSkillGroups(skillsDraft)),
     [skillsDraft],
+  );
+
+  const bulletsJson = useMemo(
+    () =>
+      serializeTailoredProjectBullets(fromEditableProjectBullets(bulletsDraft)),
+    [bulletsDraft],
   );
 
   const selectedIdsCsv = useMemo(
@@ -87,25 +122,35 @@ export function useTailoringDraft({
   const isDirty = useMemo(() => {
     if (jobDescription !== savedDescription) return true;
     if (skillsJson !== savedSkillsJson) return true;
+    if (bulletsJson !== savedBulletsJson) return true;
     return hasSelectionDiff(selectedIds, savedSelectedIds);
   }, [
     jobDescription,
     savedDescription,
     skillsJson,
     savedSkillsJson,
+    bulletsJson,
+    savedBulletsJson,
     selectedIds,
     savedSelectedIds,
   ]);
 
-  const applyIncomingDraft = useCallback((incomingJob: Job) => {
-    const next = parseIncomingDraft(incomingJob);
-    setJobDescription(next.description);
-    setSelectedIds(next.selectedIds);
-    setSkillsDraft(next.skillsDraft);
-    setSavedDescription(next.description);
-    setSavedSelectedIds(next.selectedIds);
-    setSavedSkillsJson(next.skillsJson);
-  }, []);
+  const applyIncomingDraft = useCallback(
+    (incomingJob: Job) => {
+      const next = parseIncomingDraft(incomingJob);
+      setJobDescription(next.description);
+      setSelectedIds(next.selectedIds);
+      setSkillsDraft(next.skillsDraft);
+      setBulletsDraft(
+        toEditableProjectBullets(next.parsedBullets, catalog, next.selectedIds),
+      );
+      setSavedDescription(next.description);
+      setSavedSelectedIds(next.selectedIds);
+      setSavedSkillsJson(next.skillsJson);
+      setSavedBulletsJson(next.bulletsJson);
+    },
+    [catalog],
+  );
 
   useEffect(() => {
     onDirtyChange?.(isDirty);
@@ -136,6 +181,24 @@ export function useTailoringDraft({
       applyIncomingDraft(jobRef.current);
     }
   }, [job.id, applyIncomingDraft]);
+
+  // Re-derive bulletsDraft when catalog or selectedIds change to ensure
+  // all selected projects have entries with project names resolved.
+  useEffect(() => {
+    setBulletsDraft((prev) => {
+      const existingMap = new Map<string, string>();
+      for (const entry of prev) {
+        existingMap.set(entry.projectId, entry.bulletsText);
+      }
+      const parsed = fromEditableProjectBullets(prev);
+      return toEditableProjectBullets(parsed, catalog, selectedIds).map(
+        (entry) => ({
+          ...entry,
+          bulletsText: existingMap.get(entry.projectId) ?? entry.bulletsText,
+        }),
+      );
+    });
+  }, [catalog, selectedIds]);
 
   useEffect(() => {
     if (
@@ -179,6 +242,17 @@ export function useTailoringDraft({
     setSkillsDraft((prev) => prev.filter((group) => group.id !== id));
   }, []);
 
+  const handleUpdateProjectBullet = useCallback(
+    (projectId: string, bulletsText: string) => {
+      setBulletsDraft((prev) =>
+        prev.map((entry) =>
+          entry.projectId === projectId ? { ...entry, bulletsText } : entry,
+        ),
+      );
+    },
+    [],
+  );
+
   return {
     catalog,
     isCatalogLoading,
@@ -197,5 +271,9 @@ export function useTailoringDraft({
     handleAddSkillGroup,
     handleUpdateSkillGroup,
     handleRemoveSkillGroup,
+    bulletsDraft,
+    setBulletsDraft,
+    bulletsJson,
+    handleUpdateProjectBullet,
   };
 }
