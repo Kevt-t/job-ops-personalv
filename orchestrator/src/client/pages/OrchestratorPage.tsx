@@ -160,6 +160,7 @@ export const OrchestratorPage: React.FC = () => {
     canSkipSelected,
     canMoveSelected,
     canRescoreSelected,
+    canDeleteSelected,
     jobActionInFlight,
     toggleSelectJob,
     toggleSelectAll,
@@ -259,6 +260,8 @@ export const OrchestratorPage: React.FC = () => {
   );
 
   useEffect(() => {
+    if (isLoading) return;
+
     if (activeJobs.length === 0) {
       if (selectedJobId) handleSelectJobId(null);
       return;
@@ -271,6 +274,7 @@ export const OrchestratorPage: React.FC = () => {
     }
   }, [
     activeJobs,
+    isLoading,
     selectedJobId,
     isDesktop,
     activeTab,
@@ -409,10 +413,12 @@ export const OrchestratorPage: React.FC = () => {
         canMoveSelected={canMoveSelected}
         canSkipSelected={canSkipSelected}
         canRescoreSelected={canRescoreSelected}
+        canDeleteSelected={canDeleteSelected}
         jobActionInFlight={jobActionInFlight !== null}
         onMoveToReady={() => void runJobAction("move_to_ready")}
         onSkipSelected={() => void runJobAction("skip")}
         onRescoreSelected={() => void runJobAction("rescore")}
+        onDeleteSelected={() => void runJobAction("delete")}
         onClear={clearSelection}
       />
 

@@ -1,5 +1,17 @@
 import { AnimatePresence, motion } from "framer-motion";
+import { Trash2 } from "lucide-react";
 import type React from "react";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
 import { Button } from "@/components/ui/button";
 
 interface FloatingJobActionsBarProps {
@@ -8,10 +20,12 @@ interface FloatingJobActionsBarProps {
   canMoveSelected: boolean;
   canSkipSelected: boolean;
   canRescoreSelected: boolean;
+  canDeleteSelected: boolean;
   jobActionInFlight: boolean;
   onMoveToReady: () => void;
   onSkipSelected: () => void;
   onRescoreSelected: () => void;
+  onDeleteSelected: () => void;
   onClear: () => void;
 }
 
@@ -21,10 +35,12 @@ export const FloatingJobActionsBar: React.FC<FloatingJobActionsBarProps> = ({
   canMoveSelected,
   canSkipSelected,
   canRescoreSelected,
+  canDeleteSelected,
   jobActionInFlight,
   onMoveToReady,
   onSkipSelected,
   onRescoreSelected,
+  onDeleteSelected,
   onClear,
 }) => {
   return (
@@ -77,6 +93,41 @@ export const FloatingJobActionsBar: React.FC<FloatingJobActionsBarProps> = ({
                 >
                   Recalculate match
                 </Button>
+              )}
+              {canMutate && canDeleteSelected && (
+                <AlertDialog>
+                  <AlertDialogTrigger asChild>
+                    <Button
+                      type="button"
+                      size="sm"
+                      variant="destructive"
+                      className="w-full sm:w-auto"
+                      disabled={jobActionInFlight}
+                    >
+                      <Trash2 className="h-3.5 w-3.5" />
+                      Delete selected
+                    </Button>
+                  </AlertDialogTrigger>
+                  <AlertDialogContent>
+                    <AlertDialogHeader>
+                      <AlertDialogTitle>Delete selected jobs?</AlertDialogTitle>
+                      <AlertDialogDescription>
+                        This permanently deletes {selectedCount} selected job
+                        {selectedCount === 1 ? "" : "s"}. Ready, applied, and
+                        in-progress jobs cannot be deleted from this bulk action.
+                      </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                      <AlertDialogCancel>Cancel</AlertDialogCancel>
+                      <AlertDialogAction
+                        className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                        onClick={onDeleteSelected}
+                      >
+                        Delete
+                      </AlertDialogAction>
+                    </AlertDialogFooter>
+                  </AlertDialogContent>
+                </AlertDialog>
               )}
               <Button
                 type="button"

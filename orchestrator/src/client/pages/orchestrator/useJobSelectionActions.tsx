@@ -10,6 +10,7 @@ import { trackProductEvent } from "@/lib/analytics";
 import type { FilterTab } from "./constants";
 import { JobActionProgressToast } from "./JobActionProgressToast";
 import {
+  canDelete,
   canMoveToReady,
   canRescore,
   canSkip,
@@ -23,12 +24,14 @@ const jobActionLabel: Record<JobAction, string> = {
   move_to_ready: "Moving jobs to Ready...",
   skip: "Skipping selected jobs...",
   rescore: "Calculating match scores...",
+  delete: "Deleting selected jobs...",
 };
 
 const jobActionSuccessLabel: Record<JobAction, string> = {
   move_to_ready: "jobs moved to Ready",
   skip: "jobs skipped",
   rescore: "matches recalculated",
+  delete: "jobs deleted",
 };
 
 interface UseJobSelectionActionsArgs {
@@ -62,6 +65,10 @@ export function useJobSelectionActions({
   );
   const canRescoreSelected = useMemo(
     () => canRescore(selectedJobs),
+    [selectedJobs],
+  );
+  const canDeleteSelected = useMemo(
+    () => canDelete(selectedJobs),
     [selectedJobs],
   );
 
@@ -283,6 +290,7 @@ export function useJobSelectionActions({
     canSkipSelected,
     canMoveSelected,
     canRescoreSelected,
+    canDeleteSelected,
     jobActionInFlight,
     toggleSelectJob,
     toggleSelectAll,

@@ -246,6 +246,10 @@ const jobActionRequestSchema = z.discriminatedUnion("action", [
     jobIds: z.array(z.string().min(1)).min(1).max(100),
   }),
   z.object({
+    action: z.literal("delete"),
+    jobIds: z.array(z.string().min(1)).min(1).max(100),
+  }),
+  z.object({
     action: z.literal("move_to_ready"),
     jobIds: z.array(z.string().min(1)).min(1).max(100),
     options: z
@@ -268,6 +272,13 @@ const jobsRevisionQuerySchema = z.object({
 const SKIPPABLE_STATUSES: ReadonlySet<JobStatus> = new Set([
   "discovered",
   "ready",
+]);
+
+const DELETABLE_STATUSES: ReadonlySet<JobStatus> = new Set([
+  "discovered",
+  "processing",
+  "skipped",
+  "expired",
 ]);
 
 function parseStatusFilter(statusFilter?: string): JobStatus[] | undefined {
@@ -408,6 +419,27 @@ async function executeJobActionForJob(
       }
 
       return { jobId, ok: true, job: updated };
+    }
+
+    if (action === "delete") {
+      if (!DELETABLE_STATUSES.has(job.status)) {
+        throw badRequest(`Job is not deletable from status "${job.status}"`, {
+          jobId,
+          status: job.status,
+          allowedStatuses: ["discovered", "processing", "skipped", "expired"],
+        });
+      }
+
+      const deleted = await jobsRepo.deleteJobById(jobId);
+      if (!deleted) {
+        throw new AppError({
+          status: 404,
+          code: "NOT_FOUND",
+          message: "Job not found",
+        });
+      }
+
+      return { jobId, ok: true, job };
     }
 
     if (action === "move_to_ready") {
