@@ -2,6 +2,7 @@ import { createJob } from "@shared/testing/factories.js";
 import type { JobActionResponse } from "@shared/types.js";
 import { describe, expect, it } from "vitest";
 import {
+  canDelete,
   canMoveToReady,
   canRescore,
   canSkip,
@@ -43,6 +44,19 @@ describe("jobActions", () => {
         createJob({ id: "2", status: "processing" }),
       ]),
     ).toBe(false);
+
+    expect(
+      canDelete([
+        createJob({ id: "1", status: "discovered" }),
+        createJob({ id: "2", status: "processing" }),
+        createJob({ id: "3", status: "skipped" }),
+        createJob({ id: "4", status: "expired" }),
+      ]),
+    ).toBe(true);
+    expect(canDelete([createJob({ id: "1", status: "ready" })])).toBe(false);
+    expect(canDelete([createJob({ id: "1", status: "applied" })])).toBe(
+      false,
+    );
   });
 
   it("extracts failed job ids from an action response", () => {

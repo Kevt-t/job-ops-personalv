@@ -417,6 +417,17 @@ export async function deleteJobsByStatus(status: JobStatus): Promise<number> {
 }
 
 /**
+ * Delete a single job by ID.
+ */
+export async function deleteJobById(id: string): Promise<boolean> {
+  const deleted = await db
+    .delete(jobs)
+    .where(eq(jobs.id, id))
+    .returning({ id: jobs.id });
+  return deleted.length > 0;
+}
+
+/**
  * Delete jobs with suitability score below threshold (excluding applied and in_progress jobs).
  */
 export async function deleteJobsBelowScore(threshold: number): Promise<number> {

@@ -46,6 +46,7 @@ vi.mock("sonner", () => ({
 }));
 
 let mockIsPipelineRunning = false;
+let mockIsLoading = false;
 let mockDemoMode = false;
 let mockPipelineTerminalEvent: {
   status: "completed" | "cancelled" | "failed";
@@ -94,6 +95,8 @@ const processingJob = createJob({
   status: "processing",
 });
 
+let mockJobs = [jobFixture, job2, processingJob];
+
 const createMatchMedia = (matches: boolean) =>
   vi.fn().mockImplementation((query: string) => ({
     matches,
@@ -107,7 +110,7 @@ const createMatchMedia = (matches: boolean) =>
 
 vi.mock("./orchestrator/useOrchestratorData", () => ({
   useOrchestratorData: () => ({
-    jobs: [jobFixture, job2, processingJob],
+    jobs: mockJobs,
     selectedJob: jobFixture,
     stats: {
       discovered: 1,
@@ -117,7 +120,7 @@ vi.mock("./orchestrator/useOrchestratorData", () => ({
       skipped: 0,
       expired: 0,
     },
-    isLoading: false,
+    isLoading: mockIsLoading,
     isPipelineRunning: mockIsPipelineRunning,
     setIsPipelineRunning: vi.fn(),
     pipelineTerminalEvent: mockPipelineTerminalEvent,
@@ -379,6 +382,8 @@ describe("OrchestratorPage", () => {
     localStorage.setItem("has-seen-keyboard-shortcuts", "true");
     mockDemoMode = false;
     mockIsPipelineRunning = false;
+    mockIsLoading = false;
+    mockJobs = [jobFixture, job2, processingJob];
     mockPipelineTerminalEvent = null;
     mockPipelineSources = ["linkedin"];
     mockAutomaticRunValues = {
@@ -466,6 +471,31 @@ describe("OrchestratorPage", () => {
     await waitFor(() => {
       expect(locationText()).toContain("/all/job-2");
     });
+  });
+
+  it("preserves a deep-linked job selection while jobs are loading", async () => {
+    mockIsLoading = true;
+    mockJobs = [];
+    window.matchMedia = createMatchMedia(
+      true,
+    ) as unknown as typeof window.matchMedia;
+
+    render(
+      <MemoryRouter initialEntries={["/jobs/ready/job-1"]}>
+        <LocationWatcher />
+        <Routes>
+          <Route path="/jobs/:tab" element={<OrchestratorPage />} />
+          <Route path="/jobs/:tab/:jobId" element={<OrchestratorPage />} />
+        </Routes>
+      </MemoryRouter>,
+    );
+
+    await new Promise((resolve) => setTimeout(resolve, 0));
+
+    expect(screen.getByTestId("location")).toHaveTextContent(
+      "/jobs/ready/job-1",
+    );
+    expect(screen.getByTestId("selected-job")).toHaveTextContent("job-1");
   });
 
   it("opens the command bar when the filters search button is clicked", () => {

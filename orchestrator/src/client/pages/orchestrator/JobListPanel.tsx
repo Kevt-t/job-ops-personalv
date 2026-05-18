@@ -4,7 +4,7 @@ import type React from "react";
 import { Checkbox } from "@/components/ui/checkbox";
 import { cn } from "@/lib/utils";
 import type { FilterTab } from "./constants";
-import { defaultStatusToken, emptyStateCopy, statusTokens } from "./constants";
+import { emptyStateCopy } from "./constants";
 import { JobRowContent } from "./JobRowContent";
 
 interface JobListPanelProps {
@@ -73,7 +73,6 @@ export const JobListPanel: React.FC<JobListPanelProps> = ({
         {activeJobs.map((job) => {
           const isSelected = job.id === selectedJobId;
           const isChecked = selectedJobIds.has(job.id);
-          const statusToken = statusTokens[job.status] ?? defaultStatusToken;
           return (
             <div
               key={job.id}
@@ -89,29 +88,16 @@ export const JobListPanel: React.FC<JobListPanelProps> = ({
                 isChecked && isSelected && "outline-2 outline-primary/30",
               )}
             >
-              <div className="relative h-4 w-4 shrink-0">
-                <span
-                  className={cn(
-                    "absolute inset-0 m-auto h-2 w-2 rounded-full transition-opacity duration-150 ease-out",
-                    statusToken.dot,
-                    isChecked || isSelected
-                      ? "opacity-0"
-                      : "opacity-100 group-hover:opacity-0",
-                  )}
-                  title={statusToken.label}
-                />
+              <div className="flex h-4 w-4 shrink-0 items-center justify-center">
                 <Checkbox
                   checked={isChecked}
                   onCheckedChange={() => onToggleSelectJob(job.id)}
                   onClick={(event) => event.stopPropagation()}
                   aria-label={`Select ${job.title}`}
                   className={cn(
-                    "absolute inset-0 m-0 border-border/80 cursor-pointer text-muted-foreground/70 transition-opacity duration-150 ease-out",
+                    "m-0 cursor-pointer border-border/80 text-muted-foreground/70",
                     "data-[state=checked]:border-primary data-[state=checked]:bg-primary/20 data-[state=checked]:text-primary",
                     "data-[state=checked]:shadow-[0_0_0_1px_hsl(var(--primary)/0.35)]",
-                    isChecked || isSelected
-                      ? "opacity-100 pointer-events-auto"
-                      : "opacity-0 pointer-events-none group-hover:opacity-100 group-hover:pointer-events-auto",
                   )}
                 />
               </div>
@@ -125,7 +111,7 @@ export const JobListPanel: React.FC<JobListPanelProps> = ({
                 <JobRowContent
                   job={job}
                   isSelected={isSelected}
-                  showStatusDot={false}
+                  showStatusDot
                 />
               </button>
             </div>

@@ -267,4 +267,57 @@ describe("useJobSelectionActions", () => {
     );
     expect(toast.success).toHaveBeenCalledWith("2 matches recalculated");
   });
+
+  it("runs delete for selected deletable jobs", async () => {
+    const activeJobs = [
+      createJob({ id: "job-1", status: "discovered" }),
+      createJob({ id: "job-2", status: "processing" }),
+    ];
+    const loadJobs = vi.fn().mockResolvedValue(undefined);
+    mockStreamJobAction({
+      action: "delete",
+      requested: 2,
+      succeeded: 2,
+      failed: 0,
+      results: [
+        {
+          jobId: "job-1",
+          ok: true,
+          job: createJob({ id: "job-1", status: "discovered" }),
+        },
+        {
+          jobId: "job-2",
+          ok: true,
+          job: createJob({ id: "job-2", status: "processing" }),
+        },
+      ],
+    });
+
+    const { result } = renderHook(() =>
+      useJobSelectionActions({
+        activeJobs,
+        activeTab: "discovered",
+        loadJobs,
+      }),
+    );
+
+    act(() => {
+      result.current.toggleSelectAll(true);
+    });
+
+    expect(result.current.canDeleteSelected).toBe(true);
+
+    await act(async () => {
+      await result.current.runJobAction("delete");
+    });
+
+    expect(api.streamJobAction).toHaveBeenCalledWith(
+      { action: "delete", jobIds: ["job-1", "job-2"] },
+      expect.objectContaining({
+        onEvent: expect.any(Function),
+      }),
+    );
+    expect(loadJobs).toHaveBeenCalledTimes(1);
+    expect(toast.success).toHaveBeenCalledWith("2 jobs deleted");
+  });
 });

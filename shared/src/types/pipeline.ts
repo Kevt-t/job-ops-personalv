@@ -42,11 +42,11 @@ export interface JobsRevisionResponse {
   statusFilter: string | null;
 }
 
-export type JobAction = "skip" | "move_to_ready" | "rescore";
+export type JobAction = "skip" | "move_to_ready" | "rescore" | "delete";
 
 export type JobActionRequest =
   | {
-      action: "skip" | "rescore";
+      action: "skip" | "rescore" | "delete";
       jobIds: string[];
     }
   | {
